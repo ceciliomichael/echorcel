@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import type { DeploymentStatus } from "@/types/deployment";
 
 interface DeploymentLogsProps {
@@ -22,13 +22,21 @@ export function DeploymentLogs({ deploymentId, status: initialStatus }: Deployme
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState<DeploymentStatus>(initialStatus);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Re-subscribe when status changes to pending (redeploy started)
   useEffect(() => {
-    setLogs([]);
-    setIsLoading(true);
+    if (initialStatus === "pending" && status !== "pending") {
+      setLogs([]);
+      setRefreshKey((k) => k + 1); // Force reconnect
+    }
     setStatus(initialStatus);
+  }, [initialStatus, status]);
+
+  useEffect(() => {
+    setIsLoading(true);
 
     const eventSource = new EventSource(`/api/deployments/${deploymentId}/logs?stream=true`);
     eventSourceRef.current = eventSource;
@@ -56,7 +64,7 @@ export function DeploymentLogs({ deploymentId, status: initialStatus }: Deployme
       eventSource.close();
       eventSourceRef.current = null;
     };
-  }, [deploymentId, initialStatus]);
+  }, [deploymentId, refreshKey]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -107,22 +115,39 @@ export function DeploymentLogs({ deploymentId, status: initialStatus }: Deployme
     return <Badge variant={variants[status]} dot>{status}</Badge>;
   };
 
+  const handleClear = () => {
+    setLogs([]);
+  };
+
   return (
     <Card>
       <CardHeader
         title="Build & Runtime Logs"
         description="Real-time logs from your deployment"
-        action={
-          <Button variant="ghost" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-        }
       />
       <CardContent>
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-zinc-500">Status:</span>
-          {getStatusBadge()}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-zinc-500">Status:</span>
+            {getStatusBadge()}
+          </div>
+          <div className="flex items-center p-1 bg-zinc-100 rounded-lg border border-zinc-200">
+            <button
+              onClick={handleClear}
+              className="px-3 py-1.5 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-white rounded-md transition-all flex items-center gap-2 focus:outline-none"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear
+            </button>
+            <div className="w-px h-4 bg-zinc-200 mx-1" />
+            <button
+              onClick={handleRefresh}
+              className="px-3 py-1.5 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-white rounded-md transition-all flex items-center gap-2 focus:outline-none"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div

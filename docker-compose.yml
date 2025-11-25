@@ -1,0 +1,38 @@
+services:
+  echorcel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: echorcel
+    restart: always
+    ports:
+      - "3099:3099"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/echorcel
+      - AUTH_SECRET=${AUTH_SECRET:-change-this-secret-in-production}
+    volumes:
+      # Mount Docker socket (Linux/macOS)
+      # On Windows, use docker-compose.windows.yml or set DOCKER_HOST
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongo
+    networks:
+      - echorcel-network
+
+  mongo:
+    image: mongo:7
+    container_name: echorcel-mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - echorcel-network
+
+networks:
+  echorcel-network:
+    driver: bridge
+
+volumes:
+  mongo-data:

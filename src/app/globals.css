@@ -56,16 +56,7 @@
 @layer components {
   /* Subtle 3D Button Effect */
   .btn-3d {
-    @apply relative transition-all duration-150;
-    transform: translateY(0);
-  }
-
-  .btn-3d:hover {
-    transform: translateY(-1px);
-  }
-
-  .btn-3d:active {
-    transform: translateY(1px);
+    @apply relative transition-colors duration-150;
   }
 
   /* Accent glow effect */

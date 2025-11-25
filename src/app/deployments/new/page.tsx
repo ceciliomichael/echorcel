@@ -1,21 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { FrameworkSelect } from "@/components/ui/framework-select";
+import { EnvEditor } from "@/components/ui/env-editor";
+import { GitHubRepoPicker } from "@/components/ui/github-repo-picker";
 import {
   FRAMEWORK_PRESETS,
+  RESTART_POLICIES,
   type FrameworkPreset,
   type DeploymentFormData,
+  type RestartPolicy,
 } from "@/types/deployment";
+import { Select } from "@/components/ui/select";
 import type { DetectionResult } from "@/lib/repo-detector";
 import {
-  Boxes,
   ArrowLeft,
   ArrowRight,
   Loader2,
@@ -26,6 +29,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import { Header } from "@/components/layout/header";
 
 const steps = [
   { id: 1, name: "Repository", icon: GitBranch },
@@ -42,6 +46,9 @@ export default function NewDeploymentPage() {
   const [detection, setDetection] = useState<DetectionResult | null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [lastAnalyzedUrl, setLastAnalyzedUrl] = useState("");
+  const [portTouched, setPortTouched] = useState(false);
+  const [isFetchingPort, setIsFetchingPort] = useState(false);
+  const lastStepRef = useRef(1);
 
   const [formData, setFormData] = useState<DeploymentFormData>({
     name: "",
@@ -53,9 +60,35 @@ export default function NewDeploymentPage() {
     outputDirectory: FRAMEWORK_PRESETS.nextjs.outputDir,
     installCommand: FRAMEWORK_PRESETS.nextjs.installCommand,
     startCommand: FRAMEWORK_PRESETS.nextjs.startCommand,
-    envVariablesRaw: "",
-    port: FRAMEWORK_PRESETS.nextjs.defaultPort,
+    envVariables: [],
+    port: 3100, // Will be auto-assigned when entering Step 2
+    restartPolicy: "always",
   });
+
+  // Fetch available port when entering Step 2
+  useEffect(() => {
+    const fetchAvailablePort = async () => {
+      if (currentStep === 2 && lastStepRef.current !== 2 && !portTouched) {
+        setIsFetchingPort(true);
+        try {
+          const res = await fetch("/api/ports/next-available");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.port) {
+              setFormData((prev) => ({ ...prev, port: data.port }));
+            }
+          }
+        } catch (_error) {
+          // Keep current port if fetch fails
+        } finally {
+          setIsFetchingPort(false);
+        }
+      }
+      lastStepRef.current = currentStep;
+    };
+
+    fetchAvailablePort();
+  }, [currentStep, portTouched]);
 
   const handleFrameworkChange = (framework: FrameworkPreset) => {
     const preset = FRAMEWORK_PRESETS[framework];
@@ -66,8 +99,8 @@ export default function NewDeploymentPage() {
       outputDirectory: preset.outputDir,
       installCommand: preset.installCommand,
       startCommand: preset.startCommand,
-      port: preset.defaultPort,
     }));
+    // Don't reset port when framework changes - keep the auto-assigned port
   };
 
   const updateField = <K extends keyof DeploymentFormData>(
@@ -113,7 +146,7 @@ export default function NewDeploymentPage() {
           outputDirectory: preset.outputDir,
           installCommand: preset.installCommand,
           startCommand: preset.startCommand,
-          port: preset.defaultPort,
+          // Don't override port - it will be auto-assigned in Step 2
         }));
       }
     } catch (_error) {
@@ -123,21 +156,11 @@ export default function NewDeploymentPage() {
     }
   };
 
-  const parseEnvVariables = (raw: string) => {
-    if (!raw.trim()) return [];
-    return raw
-      .split("\n")
-      .filter((line) => line.includes("="))
-      .map((line) => {
-        const [key, ...rest] = line.split("=");
-        return { key: key.trim(), value: rest.join("=").trim() };
-      });
-  };
-
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const envVariables = parseEnvVariables(formData.envVariablesRaw);
+      // Filter out empty env variables
+      const envVariables = formData.envVariables.filter((v) => v.key.trim());
 
       const res = await fetch("/api/deployments", {
         method: "POST",
@@ -148,7 +171,7 @@ export default function NewDeploymentPage() {
       if (res.ok) {
         const newDeployment = await res.json();
         await fetch(`/api/deployments/${newDeployment._id}/deploy`, { method: "POST" });
-        router.push(`/deployments/${newDeployment._id}?tab=logs`);
+        router.push(`/deployments/${newDeployment._id}/deploying`);
       }
     } finally {
       setIsSubmitting(false);
@@ -180,19 +203,7 @@ export default function NewDeploymentPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Header */}
-      <header className="border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-600 flex items-center justify-center shadow-soft">
-                <Boxes className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-zinc-900">Echorcel</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Back Link */}
@@ -269,51 +280,30 @@ export default function NewDeploymentPage() {
                     Import Git Repository
                   </h2>
                   <p className="text-sm text-zinc-500">
-                    Enter your repository URL and we&apos;ll auto-detect the framework
+                    Select a repository or enter a URL and we&apos;ll auto-detect the framework
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <Input
-                      label="Git Repository URL"
-                      id="gitUrl"
-                      placeholder="https://github.com/user/repo"
-                      value={formData.gitUrl}
-                      onChange={(e) => {
-                        const url = e.target.value;
-                        updateField("gitUrl", url);
-                        // Reset detection when URL changes
-                        if (url.trim() !== lastAnalyzedUrl) {
-                          setDetection(null);
-                          setAnalyzeError(null);
-                          setLastAnalyzedUrl("");
-                        }
-                        // Auto-detect when URL looks like a valid GitHub repo
-                        if (url.includes("github.com/") && url.split("/").length >= 5) {
-                          analyzeRepo(url.trim());
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                      label="Branch"
-                      id="branch"
-                      placeholder="main"
-                      value={formData.branch}
-                      onChange={(e) => updateField("branch", e.target.value)}
-                    />
-                    <Input
-                      label="Root Directory"
-                      id="rootDirectory"
-                      placeholder="./"
-                      value={formData.rootDirectory}
-                      onChange={(e) => updateField("rootDirectory", e.target.value)}
-                      hint="Leave empty for root"
-                    />
-                  </div>
+                  <GitHubRepoPicker
+                    gitUrl={formData.gitUrl}
+                    branch={formData.branch}
+                    rootDirectory={formData.rootDirectory}
+                    onChangeUrl={(url) => {
+                      updateField("gitUrl", url);
+                      if (url.trim() !== lastAnalyzedUrl) {
+                        setDetection(null);
+                        setAnalyzeError(null);
+                        setLastAnalyzedUrl("");
+                      }
+                      if (url.includes("github.com") && url.split("/").length >= 5) {
+                        analyzeRepo(url.trim());
+                      }
+                    }}
+                    onChangeBranch={(branch) => updateField("branch", branch)}
+                    onChangeRootDir={(dir) => updateField("rootDirectory", dir)}
+                    onChangeName={(name) => updateField("name", name || "")}
+                  />
 
                   {/* Detection Status */}
                   {isAnalyzing && (
@@ -360,21 +350,21 @@ export default function NewDeploymentPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <Input
-                    label="Project Name"
-                    id="name"
-                    placeholder="my-awesome-app"
-                    value={formData.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    hint="This will be used as your deployment name"
-                  />
-
-                  <FrameworkSelect
-                    value={formData.framework}
-                    onChange={handleFrameworkChange}
-                    label="Framework"
-                  />
-
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Project Name"
+                      id="name"
+                      placeholder="my-awesome-app"
+                      value={formData.name}
+                      onChange={(e) => updateField("name", e.target.value)}
+                      hint="This will be used as your deployment name"
+                    />
+                    <FrameworkSelect
+                      value={formData.framework}
+                      onChange={handleFrameworkChange}
+                      label="Framework"
+                    />
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
@@ -402,26 +392,37 @@ export default function NewDeploymentPage() {
                       onChange={(e) => updateField("startCommand", e.target.value)}
                     />
                     <Input
-                      label="Port"
+                      label={isFetchingPort ? "Port (checking...)" : "Port"}
                       id="port"
                       type="number"
-                      min={1}
-                      max={65535}
+                      min={3100}
+                      max={3200}
                       value={formData.port}
-                      onChange={(e) =>
-                        updateField("port", parseInt(e.target.value) || 3000)
-                      }
+                      onChange={(e) => {
+                        setPortTouched(true);
+                        updateField("port", parseInt(e.target.value) || 3100);
+                      }}
+                      hint="Auto-assigned from range 3100-3200"
                     />
                   </div>
 
-                  <Input
-                    label="Output Directory"
-                    id="outputDirectory"
-                    placeholder=".next"
-                    value={formData.outputDirectory}
-                    onChange={(e) => updateField("outputDirectory", e.target.value)}
-                    hint="Leave empty if not applicable"
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Output Directory"
+                      id="outputDirectory"
+                      placeholder=".next"
+                      value={formData.outputDirectory}
+                      onChange={(e) => updateField("outputDirectory", e.target.value)}
+                      hint="Leave empty if not applicable"
+                    />
+                    <Select
+                      label="Restart Policy"
+                      options={RESTART_POLICIES.map((p) => ({ value: p.value, label: p.label }))}
+                      value={formData.restartPolicy}
+                      onChange={(e) => updateField("restartPolicy", e.target.value as RestartPolicy)}
+                      hint="When container should restart"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -438,14 +439,9 @@ export default function NewDeploymentPage() {
                   </p>
                 </div>
 
-                <Textarea
-                  label="Environment Variables"
-                  id="envVariables"
-                  placeholder="DATABASE_URL=postgres://...&#10;API_KEY=your-api-key&#10;NODE_ENV=production"
-                  rows={8}
-                  value={formData.envVariablesRaw}
-                  onChange={(e) => updateField("envVariablesRaw", e.target.value)}
-                  hint="One variable per line in KEY=value format. These will be securely stored."
+                <EnvEditor
+                  variables={formData.envVariables}
+                  onChange={(vars) => updateField("envVariables", vars)}
                 />
 
                 <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
@@ -510,7 +506,7 @@ export default function NewDeploymentPage() {
                       Environment Variables
                     </p>
                     <p className="font-medium text-zinc-900">
-                      {parseEnvVariables(formData.envVariablesRaw).length} variable(s)
+                      {formData.envVariables.filter((v) => v.key.trim()).length} variable(s)
                       configured
                     </p>
                   </div>

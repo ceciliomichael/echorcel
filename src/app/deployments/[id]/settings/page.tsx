@@ -7,8 +7,8 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import type { Deployment, FrameworkPreset } from "@/types/deployment";
+import { EnvEditor } from "@/components/ui/env-editor";
+import type { Deployment, FrameworkPreset, EnvVariable } from "@/types/deployment";
 import { FRAMEWORK_PRESETS } from "@/types/deployment";
 import { Badge } from "@/components/ui/badge";
 import type { DeploymentStatus } from "@/types/deployment";
@@ -52,29 +52,30 @@ export default function DeploymentSettingsPage() {
     startCommand: "",
     outputDirectory: "",
     port: 3000,
-    envVariablesRaw: "",
+    envVariables: [] as EnvVariable[],
   });
 
-  const fetchDeployment = useCallback(async () => {
+  const fetchDeployment = useCallback(async (updateForm = true) => {
     try {
       const res = await fetch(`/api/deployments/${deploymentId}`);
       if (res.ok) {
         const data = await res.json();
         setDeployment(data);
-        setFormData({
-          name: data.name,
-          branch: data.branch,
-          rootDirectory: data.rootDirectory || "",
-          framework: data.framework,
-          buildCommand: data.buildCommand,
-          installCommand: data.installCommand,
-          startCommand: data.startCommand,
-          outputDirectory: data.outputDirectory,
-          port: data.port,
-          envVariablesRaw: data.envVariables
-            ?.map((env: { key: string; value: string }) => `${env.key}=${env.value}`)
-            .join("\n") || "",
-        });
+        // Only update form data on initial load or after save
+        if (updateForm) {
+          setFormData({
+            name: data.name,
+            branch: data.branch,
+            rootDirectory: data.rootDirectory || "",
+            framework: data.framework,
+            buildCommand: data.buildCommand,
+            installCommand: data.installCommand,
+            startCommand: data.startCommand,
+            outputDirectory: data.outputDirectory,
+            port: data.port,
+            envVariables: data.envVariables || [],
+          });
+        }
       }
     } catch (_error) {
       console.error("Failed to fetch deployment");
@@ -83,23 +84,23 @@ export default function DeploymentSettingsPage() {
     }
   }, [deploymentId]);
 
-  useEffect(() => {
-    fetchDeployment();
-    // Poll for status updates every 3 seconds
-    const interval = setInterval(fetchDeployment, 3000);
-    return () => clearInterval(interval);
+  // Poll for status only (don't reset form)
+  const pollStatus = useCallback(async () => {
+    await fetchDeployment(false);
   }, [fetchDeployment]);
+
+  useEffect(() => {
+    fetchDeployment(true); // Initial load with form data
+    // Poll for status updates only (don't overwrite form)
+    const interval = setInterval(pollStatus, 3000);
+    return () => clearInterval(interval);
+  }, [fetchDeployment, pollStatus]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const envVariables = formData.envVariablesRaw
-        .split("\n")
-        .filter((line) => line.includes("="))
-        .map((line) => {
-          const [key, ...rest] = line.split("=");
-          return { key: key.trim(), value: rest.join("=").trim() };
-        });
+      // Filter out empty env variables
+      const envVariables = formData.envVariables.filter((v) => v.key.trim());
 
       await fetch(`/api/deployments/${deploymentId}`, {
         method: "PATCH",
@@ -110,7 +111,7 @@ export default function DeploymentSettingsPage() {
         }),
       });
 
-      fetchDeployment();
+      fetchDeployment(true); // Refresh form after save
     } finally {
       setIsSaving(false);
     }
@@ -141,7 +142,17 @@ export default function DeploymentSettingsPage() {
     setActionLoading("deploy");
     try {
       await fetch(`/api/deployments/${deploymentId}/deploy`, { method: "POST" });
-      fetchDeployment();
+      router.push(`/deployments/${deploymentId}/deploying`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleStart = async () => {
+    setActionLoading("start");
+    try {
+      await fetch(`/api/deployments/${deploymentId}/start`, { method: "POST" });
+      fetchDeployment(false);
     } finally {
       setActionLoading(null);
     }
@@ -151,7 +162,7 @@ export default function DeploymentSettingsPage() {
     setActionLoading("stop");
     try {
       await fetch(`/api/deployments/${deploymentId}/stop`, { method: "POST" });
-      fetchDeployment();
+      fetchDeployment(false);
     } finally {
       setActionLoading(null);
     }
@@ -161,7 +172,7 @@ export default function DeploymentSettingsPage() {
     setActionLoading("restart");
     try {
       await fetch(`/api/deployments/${deploymentId}/restart`, { method: "POST" });
-      fetchDeployment();
+      fetchDeployment(false);
     } finally {
       setActionLoading(null);
     }
@@ -260,6 +271,18 @@ export default function DeploymentSettingsPage() {
                   <>
                     <Button
                       variant="secondary"
+                      onClick={handleDeploy}
+                      disabled={!!actionLoading}
+                    >
+                      {actionLoading === "deploy" ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RotateCw className="w-4 h-4 mr-2" />
+                      )}
+                      Redeploy
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onClick={handleRestart}
                       disabled={!!actionLoading}
                     >
@@ -268,7 +291,7 @@ export default function DeploymentSettingsPage() {
                       ) : (
                         <RotateCw className="w-4 h-4 mr-2" />
                       )}
-                      Redeploy
+                      Restart
                     </Button>
                     <Button
                       variant="secondary"
@@ -281,6 +304,32 @@ export default function DeploymentSettingsPage() {
                         <Square className="w-4 h-4 mr-2" />
                       )}
                       Stop
+                    </Button>
+                  </>
+                ) : deployment.status === "stopped" && deployment.containerId ? (
+                  <>
+                    <Button
+                      onClick={handleStart}
+                      disabled={!!actionLoading}
+                    >
+                      {actionLoading === "start" ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Play className="w-4 h-4 mr-2" />
+                      )}
+                      Start
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={handleDeploy}
+                      disabled={!!actionLoading}
+                    >
+                      {actionLoading === "deploy" ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RotateCw className="w-4 h-4 mr-2" />
+                      )}
+                      Redeploy
                     </Button>
                   </>
                 ) : (
@@ -392,13 +441,9 @@ export default function DeploymentSettingsPage() {
               description="Configure environment variables for your deployment"
             />
             <CardContent>
-              <Textarea
-                label=""
-                placeholder="KEY=value&#10;ANOTHER_KEY=another_value"
-                rows={6}
-                value={formData.envVariablesRaw}
-                onChange={(e) => updateField("envVariablesRaw", e.target.value)}
-                hint="One variable per line in KEY=value format"
+              <EnvEditor
+                variables={formData.envVariables}
+                onChange={(vars) => updateField("envVariables", vars)}
               />
             </CardContent>
           </Card>

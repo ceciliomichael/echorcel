@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { EnvEditor } from "@/components/ui/env-editor";
 import { Modal } from "@/components/ui/modal";
 import {
   FRAMEWORK_PRESETS,
@@ -26,6 +26,8 @@ const frameworkOptions = Object.entries(FRAMEWORK_PRESETS).map(([key, value]) =>
 
 export function DeploymentForm({ isOpen, onClose, onSubmit }: DeploymentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingPort, setIsFetchingPort] = useState(false);
+  const [portTouched, setPortTouched] = useState(false);
   const [formData, setFormData] = useState<DeploymentFormData>({
     name: "",
     gitUrl: "",
@@ -36,9 +38,33 @@ export function DeploymentForm({ isOpen, onClose, onSubmit }: DeploymentFormProp
     outputDirectory: FRAMEWORK_PRESETS.nextjs.outputDir,
     installCommand: FRAMEWORK_PRESETS.nextjs.installCommand,
     startCommand: FRAMEWORK_PRESETS.nextjs.startCommand,
-    envVariablesRaw: "",
-    port: FRAMEWORK_PRESETS.nextjs.defaultPort,
+    envVariables: [],
+    port: 3100, // Will be auto-assigned
+    restartPolicy: "always",
   });
+
+  // Fetch available port when modal opens
+  useEffect(() => {
+    const fetchAvailablePort = async () => {
+      if (isOpen && !portTouched) {
+        setIsFetchingPort(true);
+        try {
+          const res = await fetch("/api/ports/next-available");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.port) {
+              setFormData((prev) => ({ ...prev, port: data.port }));
+            }
+          }
+        } catch (_error) {
+          // Keep current port if fetch fails
+        } finally {
+          setIsFetchingPort(false);
+        }
+      }
+    };
+    fetchAvailablePort();
+  }, [isOpen, portTouched]);
 
   useEffect(() => {
     const preset = FRAMEWORK_PRESETS[formData.framework];
@@ -48,7 +74,7 @@ export function DeploymentForm({ isOpen, onClose, onSubmit }: DeploymentFormProp
       outputDirectory: preset.outputDir,
       installCommand: preset.installCommand,
       startCommand: preset.startCommand,
-      port: preset.defaultPort,
+      // Don't override port when framework changes
     }));
   }, [formData.framework]);
 
@@ -67,9 +93,11 @@ export function DeploymentForm({ isOpen, onClose, onSubmit }: DeploymentFormProp
         outputDirectory: FRAMEWORK_PRESETS.nextjs.outputDir,
         installCommand: FRAMEWORK_PRESETS.nextjs.installCommand,
         startCommand: FRAMEWORK_PRESETS.nextjs.startCommand,
-        envVariablesRaw: "",
-        port: FRAMEWORK_PRESETS.nextjs.defaultPort,
+        envVariables: [],
+        port: 3100,
+        restartPolicy: "always",
       });
+      setPortTouched(false);
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -96,13 +124,17 @@ export function DeploymentForm({ isOpen, onClose, onSubmit }: DeploymentFormProp
             required
           />
           <Input
-            label="Port"
+            label={isFetchingPort ? "Port (checking...)" : "Port"}
             id="port"
             type="number"
-            min={1}
-            max={65535}
+            min={3100}
+            max={3200}
             value={formData.port}
-            onChange={(e) => updateField("port", parseInt(e.target.value) || 3000)}
+            onChange={(e) => {
+              setPortTouched(true);
+              updateField("port", parseInt(e.target.value) || 3100);
+            }}
+            hint="Auto-assigned from range 3100-3200"
             required
           />
         </div>
@@ -178,15 +210,13 @@ export function DeploymentForm({ isOpen, onClose, onSubmit }: DeploymentFormProp
         </div>
 
         <div className="border-t border-zinc-100 pt-5">
-          <Textarea
-            label="Environment Variables"
-            id="envVariables"
-            placeholder="KEY=value&#10;ANOTHER_KEY=another_value"
-            rows={4}
-            value={formData.envVariablesRaw}
-            onChange={(e) => updateField("envVariablesRaw", e.target.value)}
+          <label className="block text-sm font-medium text-zinc-700 mb-3">
+            Environment Variables
+          </label>
+          <EnvEditor
+            variables={formData.envVariables}
+            onChange={(vars) => updateField("envVariables", vars)}
           />
-          <p className="mt-1.5 text-xs text-zinc-500">One variable per line in KEY=value format</p>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">

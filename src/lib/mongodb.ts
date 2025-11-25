@@ -24,3 +24,33 @@ export async function getDeploymentsCollection() {
   const { db } = await connectToDatabase();
   return db.collection("deployments");
 }
+
+export async function getUsersCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection("users");
+}
+
+export async function getSessionsCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection("sessions");
+}
+
+export async function getWebhooksCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection("webhooks");
+}
+
+export async function getWebhookLogsCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection("webhook_logs");
+}
+
+export async function getBuildsCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection("builds");
+}
+
+export async function getAppSettingsCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection("app_settings");
+}

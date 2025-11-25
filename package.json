@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack --port 3001",
+    "dev": "next dev --turbopack --port 3099",
     "build": "next build --turbopack",
-    "start": "next start",
+    "start": "next start --port 3099",
     "lint": "biome check",
     "format": "biome format --write"
   },
@@ -15,6 +15,8 @@
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.3",
     "autoprefixer": "^10.4.21",
+    "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "dockerode": "^4.0.9",
     "lucide-react": "^0.544.0",
@@ -32,6 +34,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/dockerode": "^3.3.47",
     "@types/node": "^20",
     "@types/react": "^19",

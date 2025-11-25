@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { EnvEditor } from "@/components/ui/env-editor";
 import type { Deployment } from "@/types/deployment";
 import {
   GitBranch,
@@ -10,13 +11,21 @@ import {
   Globe,
   Terminal,
   Package,
+  Box,
+  RotateCw,
+  ExternalLink,
 } from "lucide-react";
+import { RESTART_POLICIES } from "@/types/deployment";
 
 interface DeploymentOverviewProps {
   deployment: Deployment;
 }
 
 export function DeploymentOverview({ deployment }: DeploymentOverviewProps) {
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const previewUrl = `http://localhost:${deployment.port}`;
+  const isRunning = deployment.status === "running";
+
   const infoItems = [
     {
       label: "Branch",
@@ -112,6 +121,54 @@ export function DeploymentOverview({ deployment }: DeploymentOverviewProps) {
         </CardContent>
       </Card>
 
+      {/* Container */}
+      <Card className="lg:col-span-3">
+        <CardHeader title="Container" />
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 border border-zinc-100">
+              <div className="p-2 rounded-md bg-white border border-zinc-200 text-zinc-500">
+                <Box className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500 mb-0.5">Container ID</p>
+                <p className="text-sm font-mono text-zinc-900 truncate max-w-[180px]">
+                  {deployment.containerId?.slice(0, 12) || "Not running"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 border border-zinc-100">
+              <div className="p-2 rounded-md bg-white border border-zinc-200 text-zinc-500">
+                <RotateCw className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500 mb-0.5">Restart Policy</p>
+                <p className="text-sm font-medium text-zinc-900">
+                  {RESTART_POLICIES.find((p) => p.value === deployment.restartPolicy)?.label || "Unless Stopped"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 border border-zinc-100">
+              <div className="p-2 rounded-md bg-white border border-zinc-200 text-zinc-500">
+                <Globe className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500 mb-0.5">Preview URL</p>
+                <a
+                  href={`http://localhost:${deployment.port}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sm font-medium text-accent-600 hover:text-accent-700 transition-colors"
+                >
+                  localhost:{deployment.port}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Environment Variables */}
       <Card className="lg:col-span-3">
         <CardHeader
@@ -119,23 +176,11 @@ export function DeploymentOverview({ deployment }: DeploymentOverviewProps) {
           description={`${deployment.envVariables?.length || 0} variables configured`}
         />
         <CardContent>
-          {deployment.envVariables && deployment.envVariables.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {deployment.envVariables.map((env, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 border border-zinc-100"
-                >
-                  <span className="text-sm font-mono text-zinc-700">{env.key}</span>
-                  <Badge variant="default">Hidden</Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-zinc-400">
-              <p>No environment variables configured</p>
-            </div>
-          )}
+          <EnvEditor
+            variables={deployment.envVariables || []}
+            onChange={() => {}}
+            readOnly
+          />
         </CardContent>
       </Card>
     </div>

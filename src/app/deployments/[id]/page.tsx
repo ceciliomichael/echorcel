@@ -9,20 +9,26 @@ import { Badge } from "@/components/ui/badge";
 import { DeploymentOverview } from "@/components/deployments/deployment-overview";
 import { DeploymentLogs } from "@/components/deployments/deployment-logs";
 import { DeploymentSettings } from "@/components/deployments/deployment-settings";
+import { DeploymentHistory } from "@/components/deployments/deployment-history";
+import { WebhookSettings } from "@/components/deployments/deployment-webhooks";
 import type { Deployment, DeploymentStatus } from "@/types/deployment";
 import {
-  Boxes,
   Loader2,
   FileText,
   LayoutDashboard,
   Settings,
   ArrowLeft,
   GitBranch,
+  Rocket,
+  Webhook,
 } from "lucide-react";
+import { Header } from "@/components/layout/header";
 
 const tabs = [
   { label: "Overview", value: "overview", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Deployments", value: "deployments", icon: <Rocket className="w-4 h-4" /> },
   { label: "Logs", value: "logs", icon: <FileText className="w-4 h-4" /> },
+  { label: "Webhook", value: "webhook", icon: <Webhook className="w-4 h-4" /> },
   { label: "Settings", value: "settings", icon: <Settings className="w-4 h-4" /> },
 ];
 
@@ -58,7 +64,7 @@ export default function DeploymentDetailPage() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["overview", "logs", "settings"].includes(tab)) {
+    if (tab && ["overview", "deployments", "logs", "webhook", "settings"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -94,19 +100,7 @@ export default function DeploymentDetailPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Header */}
-      <header className="border-b border-zinc-200 sticky top-0 z-40 bg-white/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-600 flex items-center justify-center shadow-soft">
-                <Boxes className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-zinc-900">Echorcel</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Project Header */}
       <div className="border-b border-zinc-200 bg-white">
@@ -141,7 +135,17 @@ export default function DeploymentDetailPage() {
         />
 
         {activeTab === "overview" && <DeploymentOverview deployment={deployment} />}
+        {activeTab === "deployments" && <DeploymentHistory deploymentId={deploymentId} gitUrl={deployment.gitUrl} />}
         {activeTab === "logs" && <DeploymentLogs deploymentId={deploymentId} status={deployment.status} />}
+        {activeTab === "webhook" && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-zinc-900">Webhook Settings</h2>
+              <p className="text-sm text-zinc-500 mt-1">Configure automatic deployments when you push to your repository</p>
+            </div>
+            <WebhookSettings deploymentId={deploymentId} />
+          </div>
+        )}
         {activeTab === "settings" && <DeploymentSettings deployment={deployment} onUpdate={fetchDeployment} />}
       </div>
     </div>

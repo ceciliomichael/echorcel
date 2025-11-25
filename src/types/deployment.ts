@@ -651,6 +651,15 @@ export interface EnvVariable {
   value: string;
 }
 
+export type RestartPolicy = "no" | "always" | "on-failure" | "unless-stopped";
+
+export const RESTART_POLICIES: { value: RestartPolicy; label: string; description: string }[] = [
+  { value: "no", label: "No", description: "Do not automatically restart" },
+  { value: "always", label: "Always", description: "Always restart when stopped" },
+  { value: "on-failure", label: "On Failure", description: "Restart only if exit code is non-zero" },
+  { value: "unless-stopped", label: "Unless Stopped", description: "Restart unless manually stopped" },
+];
+
 export interface Deployment {
   _id?: string;
   name: string;
@@ -664,6 +673,7 @@ export interface Deployment {
   startCommand: string;
   envVariables: EnvVariable[];
   port: number;
+  restartPolicy: RestartPolicy;
   status: DeploymentStatus;
   containerId?: string;
   imageId?: string;
@@ -683,8 +693,9 @@ export interface DeploymentFormData {
   outputDirectory: string;
   installCommand: string;
   startCommand: string;
-  envVariablesRaw: string;
+  envVariables: EnvVariable[];
   port: number;
+  restartPolicy: RestartPolicy;
 }
 
 export interface DeploymentStats {

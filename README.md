@@ -6,8 +6,9 @@ A self-hosted deployment platform for containerized applications. Deploy your pr
 
 - **Multi-language support** - JavaScript, Python, Go, Rust, Ruby, PHP, Java, and more
 - **Auto-detection** - Automatically detects framework from your repository
+- **GitHub webhooks** - Auto-deploy on push with build history and rollbacks
+- **Dynamic ports** - Echorcel on port 3099, deployments on 3100-3200 (auto-assigned)
 - **Real-time logs** - Stream build and runtime logs in real-time
-- **One-click deploy** - Clone, build, and deploy with a single click
 - **Environment variables** - Securely manage environment variables
 - **Container management** - Start, stop, restart, and delete deployments
 
@@ -56,8 +57,43 @@ npm run dev
 
 ```
 MONGODB_URI=mongodb://localhost:27017/echorcel
-GITHUB_TOKEN=your_github_token (optional, for private repos)
+AUTH_SECRET=your-secret-key
 ```
+
+## Production Deployment
+
+### Using Docker Compose (Recommended)
+
+```bash
+docker compose up -d
+```
+
+Echorcel will be available at http://localhost:3099.
+
+### Manual Docker Build
+
+```bash
+# Build the image
+docker build -t echorcel .
+
+# Run with MongoDB
+docker run -d \
+  -p 3099:3099 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e MONGODB_URI=mongodb://your-mongo:27017/echorcel \
+  -e AUTH_SECRET=your-secret \
+  echorcel
+```
+
+### Platform Notes
+
+| Platform | Docker Detection |
+|----------|-----------------|
+| Linux | Auto-detects `/var/run/docker.sock` |
+| macOS | Auto-detects `/var/run/docker.sock` |
+| Windows | Auto-detects named pipe or TCP on port 2375 |
+
+Docker configuration is **automatic** - no environment variables needed in most cases.
 
 ## License
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
+import { ProfileDropdown } from "@/components/ui/profile-dropdown";
 import { DeploymentList } from "@/components/deployments/deployment-list";
 import type { Deployment, DeploymentStats } from "@/types/deployment";
 import {
@@ -27,6 +28,7 @@ export default function Home() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [dockerConnected, setDockerConnected] = useState<boolean | null>(null);
+  const [username, setUsername] = useState<string | undefined>(undefined);
 
   const fetchDeployments = useCallback(async () => {
     try {
@@ -51,14 +53,25 @@ export default function Home() {
     }
   }, []);
 
+  const fetchAuthStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/status");
+      const data = await res.json();
+      setUsername(data.username);
+    } catch (_error) {
+      // Ignore auth status errors
+    }
+  }, []);
+
   useEffect(() => {
     fetchDeployments();
     checkDockerStatus();
+    fetchAuthStatus();
 
     // Poll for updates every 5 seconds
     const interval = setInterval(fetchDeployments, 5000);
     return () => clearInterval(interval);
-  }, [fetchDeployments, checkDockerStatus]);
+  }, [fetchDeployments, checkDockerStatus, fetchAuthStatus]);
 
   const handleDeploy = async (id: string) => {
     await fetch(`/api/deployments/${id}/deploy`, { method: "POST" });
@@ -107,6 +120,7 @@ export default function Home() {
                   Docker {dockerConnected === null ? "..." : dockerConnected ? "Connected" : "Disconnected"}
                 </span>
               </div>
+              <ProfileDropdown username={username} />
             </div>
           </div>
         </div>

@@ -4,10 +4,64 @@ import * as fs from "fs";
 import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
+import * as os from "os";
 
 const execAsync = promisify(exec);
 
-const docker = new Docker();
+/**
+ * Auto-detect Docker connection based on platform and environment
+ */
+function createDockerClient(): Docker {
+  // If DOCKER_HOST is explicitly set, use it
+  if (process.env.DOCKER_HOST) {
+    const host = process.env.DOCKER_HOST;
+    
+    if (host.startsWith("tcp://")) {
+      const url = new URL(host.replace("tcp://", "http://"));
+      return new Docker({
+        host: url.hostname,
+        port: parseInt(url.port) || 2375,
+      });
+    }
+    
+    if (host.startsWith("unix://")) {
+      return new Docker({ socketPath: host.replace("unix://", "") });
+    }
+    
+    if (host.startsWith("npipe://")) {
+      return new Docker({ socketPath: host.replace("npipe://", "") });
+    }
+  }
+
+  const platform = os.platform();
+
+  // Windows: Try named pipe first, then TCP
+  if (platform === "win32") {
+    const windowsPipe = "//./pipe/docker_engine";
+    try {
+      // Check if the named pipe exists
+      if (fs.existsSync(windowsPipe)) {
+        return new Docker({ socketPath: windowsPipe });
+      }
+    } catch (_error) {
+      // Pipe doesn't exist or not accessible
+    }
+    
+    // Fall back to TCP (Docker Desktop default when exposed)
+    return new Docker({ host: "localhost", port: 2375 });
+  }
+
+  // Linux/macOS: Use Unix socket
+  const unixSocket = "/var/run/docker.sock";
+  if (fs.existsSync(unixSocket)) {
+    return new Docker({ socketPath: unixSocket });
+  }
+
+  // Fallback: Let Dockerode use its default detection
+  return new Docker();
+}
+
+const docker = createDockerClient();
 
 export async function testDockerConnection(): Promise<boolean> {
   try {
@@ -70,15 +124,20 @@ export function generateDockerfile(
   installCommand: string,
   startCommand: string,
   outputDir: string,
-  port: number
+  port: number,
+  envVariables: { key: string; value: string }[] = []
 ): string {
   const nodeVersion = "20-alpine";
+  
+  // Generate ARG and ENV lines for build-time variables
+  const buildEnvArgs = envVariables.map((e) => `ARG ${e.key}`).join("\n");
+  const buildEnvSet = envVariables.map((e) => `ENV ${e.key}=\${${e.key}}`).join("\n");
 
   switch (framework) {
     case "nextjs":
       return `FROM node:${nodeVersion} AS builder
 WORKDIR /app
-COPY package*.json ./
+${buildEnvArgs ? buildEnvArgs + "\n" : ""}${buildEnvSet ? buildEnvSet + "\n" : ""}COPY package*.json ./
 RUN ${installCommand || "npm install"}
 COPY . .
 RUN ${buildCommand || "npm run build"}
@@ -101,13 +160,14 @@ CMD ["sh", "-c", "npm start -- -p $PORT"]
     case "angular":
       return `FROM node:${nodeVersion} AS builder
 WORKDIR /app
-COPY package*.json ./
+${buildEnvArgs ? buildEnvArgs + "\n" : ""}${buildEnvSet ? buildEnvSet + "\n" : ""}COPY package*.json ./
 RUN ${installCommand || "npm install"}
 COPY . .
 RUN ${buildCommand || "npm run build"}
 
 FROM nginx:alpine
 COPY --from=builder /app/${outputDir || "dist"} /usr/share/nginx/html
+RUN echo 'server { listen ${port}; location / { root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 EXPOSE ${port}
 CMD ["nginx", "-g", "daemon off;"]
 `;
@@ -146,6 +206,7 @@ CMD ${startCommand ? `["sh", "-c", "${startCommand}"]` : '["npm", "start"]'}
     case "static":
       return `FROM nginx:alpine
 COPY . /usr/share/nginx/html
+RUN echo 'server { listen ${port}; location / { root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 EXPOSE ${port}
 CMD ["nginx", "-g", "daemon off;"]
 `;
@@ -183,7 +244,8 @@ export async function buildImage(
       deployment.installCommand,
       deployment.startCommand,
       deployment.outputDirectory,
-      deployment.port
+      deployment.port,
+      deployment.envVariables || []
     );
     fs.writeFileSync(dockerfilePath, dockerfile);
     onLog(`[Echorcel] Auto-generated Dockerfile for ${deployment.framework}`);
@@ -191,12 +253,18 @@ export async function buildImage(
 
   onLog(`[Echorcel] Building Docker image: ${imageName}`);
 
+  // Build args for env variables (needed at build time for static sites)
+  const buildargs: Record<string, string> = {};
+  for (const env of deployment.envVariables || []) {
+    buildargs[env.key] = env.value;
+  }
+
   const stream = await docker.buildImage(
     {
       context: workDir,
       src: ["."],
     },
-    { t: imageName }
+    { t: imageName, buildargs }
   );
 
   return new Promise((resolve, reject) => {
@@ -250,7 +318,14 @@ export async function createAndStartContainer(
   // Add PORT env variable so the app listens on the specified port
   envArray.push(`PORT=${deployment.port}`);
 
-  onLog(`[Echorcel] Creating container: ${containerName}`);
+  // Map restart policy
+  const restartPolicy = deployment.restartPolicy || "always";
+  const restartPolicyConfig: { Name: string; MaximumRetryCount?: number } = { Name: restartPolicy };
+  if (restartPolicy === "on-failure") {
+    restartPolicyConfig.MaximumRetryCount = 5;
+  }
+
+  onLog(`[Echorcel] Creating container: ${containerName} (restart: ${restartPolicy})`);
 
   const container = await docker.createContainer({
     Image: imageName,
@@ -263,6 +338,7 @@ export async function createAndStartContainer(
       PortBindings: {
         [`${deployment.port}/tcp`]: [{ HostPort: String(deployment.port) }],
       },
+      RestartPolicy: restartPolicyConfig,
     },
   });
 
@@ -275,19 +351,27 @@ export async function createAndStartContainer(
 export async function stopContainer(containerId: string): Promise<void> {
   try {
     const container = docker.getContainer(containerId);
-    await container.stop();
-  } catch (_error) {
+    await container.stop({ t: 5 }); // 5 second timeout
+  } catch (error) {
     // Container may already be stopped
+    console.log(`Stop container ${containerId}:`, error instanceof Error ? error.message : error);
   }
+}
+
+export async function startContainer(containerId: string): Promise<void> {
+  const container = docker.getContainer(containerId);
+  await container.start();
 }
 
 export async function removeContainer(containerId: string): Promise<void> {
   try {
     const container = docker.getContainer(containerId);
-    await container.stop().catch(() => {});
-    await container.remove();
-  } catch (_error) {
+    // Force stop and remove
+    await container.stop({ t: 2 }).catch(() => {});
+    await container.remove({ force: true });
+  } catch (error) {
     // Container may not exist
+    console.log(`Remove container ${containerId}:`, error instanceof Error ? error.message : error);
   }
 }
 
