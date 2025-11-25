@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Thin scrollbar style - light theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(212 212 216);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(161 161 170);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(212 212 216) transparent;
+  }
+
+  /* Dark scrollbar for terminal/logs */
+  .dark-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dark-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(63 63 70);
+    border-radius: 3px;
+  }
+
+  .dark-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(82 82 91);
+  }
+
+  .dark-scrollbar {
+    scrollbar-color: rgb(63 63 70) transparent;
+  }
+
+  /* Remove focus outlines and focus rings */
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+  }
+}
+
+@layer components {
+  /* Subtle 3D Button Effect */
+  .btn-3d {
+    @apply relative transition-all duration-150;
+    transform: translateY(0);
+  }
+
+  .btn-3d:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-3d:active {
+    transform: translateY(1px);
+  }
+
+  /* Accent glow effect */
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+  }
+}
