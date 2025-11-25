@@ -4,15 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: echorcel
+    user: "0:0"
     restart: always
     ports:
       - "3099:3099"
     environment:
       - MONGODB_URI=mongodb://mongo:27017/echorcel
       - AUTH_SECRET=${AUTH_SECRET:-change-this-secret-in-production}
+      - APP_URL=${APP_URL:-http://localhost:3099}
     volumes:
-      # Mount Docker socket (Linux/macOS)
-      # On Windows, use docker-compose.windows.yml or set DOCKER_HOST
+      # Mount Docker socket so Echorcel can manage Docker containers
       - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -55,8 +55,8 @@ export function GitHubConnection() {
 
   if (status?.connected) {
     return (
-      <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg border border-zinc-100">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
+        <div className="flex items-center gap-4 min-w-0">
           {status.avatarUrl ? (
             <img src={status.avatarUrl} alt="" className="w-12 h-12 rounded-full border-2 border-white shadow-sm" />
           ) : (
@@ -64,8 +64,8 @@ export function GitHubConnection() {
               <Github className="w-6 h-6 text-white" />
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-zinc-900">{status.username}</span>
               <Badge variant="success">Connected</Badge>
             </div>
@@ -74,9 +74,17 @@ export function GitHubConnection() {
             </p>
           </div>
         </div>
-        <Button variant="secondary" size="sm" onClick={handleDisconnect} disabled={isDisconnecting}>
-          {isDisconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Disconnect"}
-        </Button>
+        <div className="flex sm:justify-end">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={handleDisconnect}
+            disabled={isDisconnecting}
+          >
+            {isDisconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Disconnect"}
+          </Button>
+        </div>
       </div>
     );
   }

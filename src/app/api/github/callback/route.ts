@@ -8,7 +8,23 @@ import {
   encryptToken,
 } from "@/lib/github";
 
+function getBaseUrl(request: NextRequest): string {
+  if (process.env.APP_URL) {
+    return process.env.APP_URL;
+  }
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  const host = request.headers.get("host") || "localhost:3099";
+  const protocol = host.includes("localhost") || host.startsWith("127.") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
+
 export async function GET(request: NextRequest) {
+  const baseUrl = getBaseUrl(request);
+
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
@@ -17,13 +33,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        new URL(`/settings?error=${encodeURIComponent(error)}`, request.url)
+        new URL(`/settings?error=${encodeURIComponent(error)}`, baseUrl)
       );
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        new URL("/settings?error=missing_params", request.url)
+        new URL("/settings?error=missing_params", baseUrl)
       );
     }
 
@@ -33,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     if (!storedState || storedState !== state) {
       return NextResponse.redirect(
-        new URL("/settings?error=invalid_state", request.url)
+        new URL("/settings?error=invalid_state", baseUrl)
       );
     }
 
@@ -43,7 +59,7 @@ export async function GET(request: NextRequest) {
     // Verify user is authenticated
     const session = await getSessionFromCookie();
     if (!session) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/login", baseUrl));
     }
 
     // Exchange code for access token
@@ -72,12 +88,12 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.redirect(
-      new URL("/settings?github=connected", request.url)
+      new URL("/settings?github=connected", baseUrl)
     );
   } catch (error) {
     console.error("GitHub OAuth callback error:", error);
     return NextResponse.redirect(
-      new URL("/settings?error=oauth_failed", request.url)
+      new URL("/settings?error=oauth_failed", baseUrl)
     );
   }
 }

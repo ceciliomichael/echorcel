@@ -16,7 +16,6 @@ import {
   Timer,
   Rocket,
   MoreVertical,
-  FileText,
   Copy,
 } from "lucide-react";
 import type { BuildSummary, BuildStatus } from "@/types/build";

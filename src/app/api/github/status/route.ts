@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
-import { getUsersCollection } from "@/lib/mongodb";
-import { getSessionFromCookie } from "@/lib/auth";
-import type { User } from "@/types/auth";
+import { getAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const session = await getSessionFromCookie();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const usersCollection = await getUsersCollection();
-    const user = (await usersCollection.findOne({
-      _id: session.userId,
-    })) as User | null;
+    // Echorcel is single-admin; use the admin user as the GitHub owner
+    const user = await getAdmin();
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!user.github) {

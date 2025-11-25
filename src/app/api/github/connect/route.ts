@@ -5,10 +5,13 @@ import { getGitHubOAuthUrl } from "@/lib/github";
 import { getGitHubOAuthConfig } from "@/lib/app-settings";
 
 export async function GET(request: NextRequest) {
-  // Get the base URL from the request
-  const host = request.headers.get("host") || "localhost:3000";
-  const protocol = host.includes("localhost") ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
+  // Determine external base URL (supports tunnels/proxies via APP_URL)
+  const hostHeader = request.headers.get("host") || "localhost:3099";
+  const inferredProtocol =
+    hostHeader.includes("localhost") || hostHeader.startsWith("127.") ? "http" : "https";
+  const inferredBaseUrl = `${inferredProtocol}://${hostHeader}`;
+  const baseUrl = process.env.APP_URL || inferredBaseUrl;
+  const isHttps = baseUrl.startsWith("https://");
 
   try {
     // Get OAuth config from database
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     cookieStore.set("github_oauth_state", state, {
       httpOnly: true,
-      secure: protocol === "https",
+      secure: isHttps,
       sameSite: "lax",
       maxAge: 600, // 10 minutes
       path: "/",
