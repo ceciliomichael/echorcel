@@ -10,6 +10,8 @@ import {
   removeContainer,
 } from "@/lib/docker";
 import { FRAMEWORK_PRESETS, Deployment, DeploymentStatus } from "@/types/deployment";
+import { getAdmin } from "@/lib/auth";
+import { decryptToken } from "@/lib/github";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -120,11 +122,25 @@ async function runDeployment(
       await logHandler("Existing container removed");
     }
 
-    // Step 1: Clone repository
     await updateDeploymentStatus(id, "cloning");
     await logHandler(`Cloning repository: ${deployment.gitUrl}`);
 
-    await cloneRepository(deployment.gitUrl, deployment.branch, tempDir);
+    let cloneUrl = deployment.gitUrl;
+
+    try {
+      const parsed = new URL(deployment.gitUrl);
+      if (parsed.hostname === "github.com") {
+        const admin = await getAdmin();
+        if (admin?.github?.accessToken) {
+          const token = decryptToken(admin.github.accessToken);
+          parsed.username = "x-access-token";
+          parsed.password = token;
+          cloneUrl = parsed.toString();
+        }
+      }
+    } catch (_error) {}
+
+    await cloneRepository(cloneUrl, deployment.branch, tempDir);
     await logHandler("Repository cloned successfully");
 
     // Get commit info after cloning

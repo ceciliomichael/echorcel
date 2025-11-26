@@ -78,7 +78,15 @@ export async function cloneRepository(
   targetDir: string
 ): Promise<void> {
   const cloneCommand = `git clone --branch ${branch} --depth 1 ${gitUrl} "${targetDir}"`;
-  await execAsync(cloneCommand);
+  try {
+    await execAsync(cloneCommand);
+  } catch (error) {
+    const err = error as { message?: string };
+    if (err && typeof err.message === "string") {
+      err.message = err.message.replace(/x-access-token:[^@]+@/g, "x-access-token:***@");
+    }
+    throw error;
+  }
 }
 
 export function detectFramework(repoPath: string): FrameworkPreset {

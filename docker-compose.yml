@@ -26,6 +26,8 @@ services:
     image: mongo:7
     container_name: echorcel-mongo
     restart: always
+    ports:
+      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:

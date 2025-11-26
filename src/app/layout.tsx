@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Echorcel - Mini Vercel",
+  title: "Echorcel",
   description: "Deploy your applications to Docker with ease",
   icons: {
     icon: "/favicon.svg",
