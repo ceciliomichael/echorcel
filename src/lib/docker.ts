@@ -322,9 +322,36 @@ export async function createAndStartContainer(
   }
 
   const envArray = deployment.envVariables.map((e) => `${e.key}=${e.value}`);
-  
-  // Add PORT env variable so the app listens on the specified port
-  envArray.push(`PORT=${deployment.port}`);
+
+  // Determine internal container port. Default to deployment.port,
+  // but prefer the first exposed port from the built image if available.
+  let containerPort = deployment.port;
+
+  try {
+    const image = docker.getImage(imageName);
+    const inspectData: unknown = await image.inspect();
+
+    const config = (inspectData as { Config?: unknown }).Config;
+    if (config && typeof config === "object") {
+      const exposedPorts = (config as { ExposedPorts?: Record<string, unknown> }).ExposedPorts;
+      if (exposedPorts) {
+        const exposedKeys = Object.keys(exposedPorts);
+        if (exposedKeys.length > 0) {
+          const firstKey = exposedKeys[0]; // e.g. "6789/tcp"
+          const portNumber = parseInt(firstKey.split("/")[0] ?? "", 10);
+          if (!Number.isNaN(portNumber) && portNumber > 0 && portNumber <= 65535) {
+            containerPort = portNumber;
+          }
+        }
+      }
+    }
+  } catch (_error) {
+    // If inspection fails, fall back to using deployment.port for both
+    // internal and external ports.
+  }
+
+  // Add PORT env variable so the app can read the internal listening port
+  envArray.push(`PORT=${containerPort}`);
 
   // Map restart policy
   const restartPolicy = deployment.restartPolicy || "always";
@@ -340,11 +367,13 @@ export async function createAndStartContainer(
     name: containerName,
     Env: envArray,
     ExposedPorts: {
-      [`${deployment.port}/tcp`]: {},
+      [`${containerPort}/tcp`]: {},
     },
     HostConfig: {
       PortBindings: {
-        [`${deployment.port}/tcp`]: [{ HostPort: String(deployment.port) }],
+        // Map host deployment port (e.g. 3101) to the app's internal port
+        // detected from the image (e.g. 6789) when available.
+        [`${containerPort}/tcp`]: [{ HostPort: String(deployment.port) }],
       },
       RestartPolicy: restartPolicyConfig,
     },
