@@ -678,6 +678,8 @@ export interface Deployment {
   containerId?: string;
   imageId?: string;
   previewUrl?: string;
+  hostname?: string;
+  publicUrl?: string;
   logs: string[];
   createdAt: Date;
   updatedAt: Date;

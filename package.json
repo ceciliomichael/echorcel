@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start --port 3099",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "router": "npx tsx src/lib/router.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
+    "tsx": "^4.19.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/canvas-confetti": "^1.9.0",
     "@types/dockerode": "^3.3.47",

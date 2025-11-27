@@ -16,6 +16,16 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
+const ROUTER_DOMAIN = process.env.ROUTER_DOMAIN || "echosphere.cfd";
+
+function generateHostname(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 async function updateDeploymentStatus(
   id: string,
   status: DeploymentStatus,
@@ -211,11 +221,18 @@ async function runDeployment(
       logHandler
     );
 
+    // Generate hostname for public access
+    const hostnameSlug = generateHostname(updatedDeployment.name);
+    const hostname = `${hostnameSlug}.${ROUTER_DOMAIN}`;
+    const publicUrl = `https://${hostname}`;
+
     // Update deployment with container info
     await updateDeploymentStatus(id, "running", {
       containerId,
       imageId: imageName,
       previewUrl: `http://localhost:${updatedDeployment.port}`,
+      hostname,
+      publicUrl,
     });
 
     // Mark all previous builds as not current, then set this one as current
@@ -240,7 +257,9 @@ async function runDeployment(
       );
     }
 
-    await logHandler(`Deployment successful! Available at http://localhost:${updatedDeployment.port}`);
+    await logHandler(`Deployment successful!`);
+    await logHandler(`Local: http://localhost:${updatedDeployment.port}`);
+    await logHandler(`Public: ${publicUrl}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     await logHandler(`Deployment failed: ${errorMessage}`);

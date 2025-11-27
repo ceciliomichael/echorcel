@@ -55,9 +55,16 @@ npm run dev
 
 ### Environment Variables
 
-```
+```bash
 MONGODB_URI=mongodb://localhost:27017/echorcel
 AUTH_SECRET=your-secret-key
+
+# Optional - only if using a reverse proxy or tunnel (Cloudflare, etc.)
+# APP_URL=https://echorcel.yourdomain.com
+
+# Optional router / domain mode for per-app subdomains
+# ROUTER_DOMAIN=your-domain.com
+# ECHORCEL_HOSTNAME=echorcel.your-domain.com
 ```
 
 ## Production Deployment
@@ -68,7 +75,15 @@ AUTH_SECRET=your-secret-key
 docker compose up -d
 ```
 
-Echorcel will be available at http://localhost:3099.
+Echorcel UI will be available at:
+
+- `http://localhost:3099` directly, or
+- via the router on `http://localhost:4000` (local-only mode by default)
+
+To enable domain/tunnel routing (e.g. `app1.your-domain.com`):
+
+- Configure a tunnel / DNS to point your domain to the router
+- Set `ROUTER_DOMAIN` and `ECHORCEL_HOSTNAME` in your environment
 
 ### Manual Docker Build
 

@@ -1,0 +1,21 @@
+# Echorcel Router Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install tsx for running TypeScript directly
+RUN npm install -g tsx
+
+# Copy package files and install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
+
+# Copy only the router and its dependencies
+COPY src/lib/router.ts ./src/lib/router.ts
+
+EXPOSE 4000
+
+ENV NODE_ENV=production
+ENV ROUTER_PORT=4000
+
+CMD ["tsx", "src/lib/router.ts"]

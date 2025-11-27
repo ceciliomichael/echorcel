@@ -12,6 +12,7 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/echorcel
       - AUTH_SECRET=${AUTH_SECRET:-change-this-secret-in-production}
       - APP_URL=${APP_URL:-http://localhost:3099}
+      - ROUTER_DOMAIN=${ROUTER_DOMAIN:-echosphere.cfd}
     volumes:
       # Mount Docker socket so Echorcel can manage Docker containers
       - /var/run/docker.sock:/var/run/docker.sock
@@ -19,6 +20,28 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - mongo
+    networks:
+      - echorcel-network
+
+  router:
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    container_name: echorcel-router
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/echorcel
+      - ROUTER_PORT=4000
+      - ROUTER_DOMAIN=${ROUTER_DOMAIN:-echosphere.cfd}
+      - ECHORCEL_HOSTNAME=${ECHORCEL_HOSTNAME:-echorcel.echosphere.cfd}
+      - ECHORCEL_PORT=3099
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongo
+      - echorcel
     networks:
       - echorcel-network
 
