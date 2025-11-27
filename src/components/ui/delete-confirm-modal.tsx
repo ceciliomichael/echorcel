@@ -87,14 +87,15 @@ export function DeleteConfirmModal({
           className={inputValue && !isConfirmed ? "border-red-300" : ""}
         />
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Button variant="secondary" onClick={handleClose} disabled={isDeleting}>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-2">
+          <Button variant="secondary" onClick={handleClose} disabled={isDeleting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button
             variant="danger"
             onClick={handleConfirm}
             disabled={!isConfirmed || isDeleting}
+            className="w-full sm:w-auto"
           >
             {isDeleting ? (
               <>

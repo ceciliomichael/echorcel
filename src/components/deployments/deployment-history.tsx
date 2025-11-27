@@ -216,7 +216,7 @@ export function DeploymentHistory({ deploymentId, gitUrl }: DeploymentHistoryPro
 
                   {/* Right: Meta & Actions */}
                   <div className="flex items-center gap-4 pl-7 sm:pl-0">
-                    <div className="flex items-center gap-3 text-sm text-zinc-500">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-zinc-500">
                       <div className="flex items-center gap-1.5">
                         <Timer className={`w-3.5 h-3.5 ${build.status === "building" || build.status === "queued" ? "text-amber-500" : ""}`} />
                         <span className={build.status === "building" || build.status === "queued" ? "text-amber-600 font-medium tabular-nums" : ""}>

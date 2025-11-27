@@ -31,6 +31,23 @@ const frameworkOptions = Object.entries(FRAMEWORK_PRESETS).map(([key, value]) =>
   label: value.name,
 }));
 
+const getPreviewUrl = (deployment: Deployment): string => {
+  const localUrl = deployment.previewUrl || `http://localhost:${deployment.port}`;
+
+  if (typeof window === "undefined") {
+    return localUrl;
+  }
+
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === "localhost" || hostname.startsWith("127.");
+
+  if (!isLocalhost && deployment.publicUrl) {
+    return deployment.publicUrl;
+  }
+
+  return localUrl;
+};
+
 export default function DeploymentSettingsPage() {
   const params = useParams();
   const router = useRouter();
@@ -209,6 +226,8 @@ export default function DeploymentSettingsPage() {
     );
   }
 
+  const previewUrl = getPreviewUrl(deployment);
+
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
@@ -251,15 +270,15 @@ export default function DeploymentSettingsPage() {
                     <span className="text-sm text-zinc-500">Status:</span>
                     {getStatusBadge(deployment.status)}
                   </div>
-                  {deployment.status === "running" && deployment.previewUrl && (
+                  {deployment.status === "running" && (
                     <a
-                      href={deployment.previewUrl}
+                      href={previewUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-sm text-accent-600 hover:text-accent-700"
                     >
                       <Globe className="w-4 h-4" />
-                      localhost:{deployment.port}
+                      {previewUrl}
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}

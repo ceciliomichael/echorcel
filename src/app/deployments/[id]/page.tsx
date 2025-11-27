@@ -83,7 +83,7 @@ export default function DeploymentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-zinc-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
       </div>
     );
@@ -91,7 +91,7 @@ export default function DeploymentDetailPage() {
 
   if (!deployment) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-dvh bg-zinc-50 flex flex-col items-center justify-center gap-4">
         <p className="text-zinc-500">Deployment not found</p>
         <Button variant="secondary" onClick={() => router.push("/")}>Back to Home</Button>
       </div>
@@ -99,7 +99,7 @@ export default function DeploymentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-dvh bg-zinc-50">
       <Header />
 
       {/* Project Header */}
@@ -127,12 +127,13 @@ export default function DeploymentDetailPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <TabButtons
-          tabs={tabs}
-          value={activeTab}
-          onChange={setActiveTab}
-          className="mb-6"
-        />
+        <div className="mb-6">
+          <TabButtons
+            tabs={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+          />
+        </div>
 
         {activeTab === "overview" && <DeploymentOverview deployment={deployment} />}
         {activeTab === "deployments" && <DeploymentHistory deploymentId={deploymentId} gitUrl={deployment.gitUrl} />}

@@ -16,7 +16,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-const ROUTER_DOMAIN = process.env.ROUTER_DOMAIN || "echosphere.cfd";
+const ROUTER_DOMAIN = process.env.ROUTER_DOMAIN || "";
+const IS_TUNNEL_MODE = Boolean(ROUTER_DOMAIN);
 
 function generateHostname(name: string): string {
   return name
@@ -221,18 +222,23 @@ async function runDeployment(
       logHandler
     );
 
-    // Generate hostname for public access
-    const hostnameSlug = generateHostname(updatedDeployment.name);
-    const hostname = `${hostnameSlug}.${ROUTER_DOMAIN}`;
-    const publicUrl = `https://${hostname}`;
+    // Generate hostname for public access (only when router domain is configured)
+    let hostname: string | undefined;
+    let publicUrl: string | undefined;
+
+    if (IS_TUNNEL_MODE) {
+      const hostnameSlug = generateHostname(updatedDeployment.name);
+      hostname = `${hostnameSlug}.${ROUTER_DOMAIN}`;
+      publicUrl = `https://${hostname}`;
+    }
 
     // Update deployment with container info
     await updateDeploymentStatus(id, "running", {
       containerId,
       imageId: imageName,
       previewUrl: `http://localhost:${updatedDeployment.port}`,
-      hostname,
-      publicUrl,
+      ...(hostname ? { hostname } : {}),
+      ...(publicUrl ? { publicUrl } : {}),
     });
 
     // Mark all previous builds as not current, then set this one as current
@@ -259,7 +265,11 @@ async function runDeployment(
 
     await logHandler(`Deployment successful!`);
     await logHandler(`Local: http://localhost:${updatedDeployment.port}`);
-    await logHandler(`Public: ${publicUrl}`);
+    if (publicUrl) {
+      await logHandler(`Public: ${publicUrl}`);
+    } else {
+      await logHandler("Public URL not configured (no ROUTER_DOMAIN set)");
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     await logHandler(`Deployment failed: ${errorMessage}`);

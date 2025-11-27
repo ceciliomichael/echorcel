@@ -36,6 +36,9 @@ export function DeploymentSettings({ deployment, onUpdate }: DeploymentSettingsP
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(
+    deployment.previewUrl || `http://localhost:${deployment.port}`
+  );
 
   const [formData, setFormData] = useState({
     name: deployment.name,
@@ -68,6 +71,22 @@ export function DeploymentSettings({ deployment, onUpdate }: DeploymentSettingsP
       envVariables: deployment.envVariables || [],
     });
   }, [deployment._id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === "localhost" || hostname.startsWith("127.");
+    const localUrl = deployment.previewUrl || `http://localhost:${deployment.port}`;
+
+    if (!isLocalhost && deployment.publicUrl) {
+      setPreviewUrl(deployment.publicUrl);
+    } else {
+      setPreviewUrl(localUrl);
+    }
+  }, [deployment.previewUrl, deployment.publicUrl, deployment.port]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -156,7 +175,7 @@ export function DeploymentSettings({ deployment, onUpdate }: DeploymentSettingsP
   return (
     <div className="space-y-6">
       {/* Header with Save Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Configuration</h2>
           <p className="text-sm text-zinc-500">Manage your deployment settings</p>
@@ -164,7 +183,7 @@ export function DeploymentSettings({ deployment, onUpdate }: DeploymentSettingsP
         <Button 
             onClick={handleSave} 
             disabled={isSaving}
-            className="transition-all duration-200"
+            className="w-full sm:w-auto transition-all duration-200"
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -184,15 +203,15 @@ export function DeploymentSettings({ deployment, onUpdate }: DeploymentSettingsP
               <span className="text-sm text-zinc-500">Status:</span>
               {getStatusBadge(deployment.status)}
             </div>
-            {deployment.status === "running" && deployment.previewUrl && (
+            {deployment.status === "running" && (
               <a
-                href={deployment.previewUrl}
+                href={previewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm text-accent-600 hover:text-accent-700"
               >
                 <Globe className="w-4 h-4" />
-                localhost:{deployment.port}
+                {previewUrl}
                 <ExternalLink className="w-3 h-3" />
               </a>
             )}

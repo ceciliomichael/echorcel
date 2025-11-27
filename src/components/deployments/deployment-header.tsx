@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,26 @@ export function DeploymentHeader({
   onDelete,
   isLoading,
 }: DeploymentHeaderProps) {
+  const [previewUrl, setPreviewUrl] = useState(
+    deployment.previewUrl || `http://localhost:${deployment.port}`
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === "localhost" || hostname.startsWith("127.");
+    const localUrl = deployment.previewUrl || `http://localhost:${deployment.port}`;
+
+    if (!isLocalhost && deployment.publicUrl) {
+      setPreviewUrl(deployment.publicUrl);
+    } else {
+      setPreviewUrl(localUrl);
+    }
+  }, [deployment.previewUrl, deployment.publicUrl, deployment.port]);
+
   const getStatusBadge = (status: DeploymentStatus) => {
     const variants: Record<DeploymentStatus, "default" | "success" | "warning" | "danger" | "info"> = {
       pending: "default",
@@ -107,28 +128,28 @@ export function DeploymentHeader({
         {/* Header Content */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent-50 border border-accent-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-accent-50 border border-accent-100 flex items-center justify-center flex-shrink-0">
               <GitBranch className="w-6 h-6 text-accent-600" />
             </div>
-            <div>
-              <div className="flex items-center gap-3 mb-1">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
                 <h1 className="text-xl sm:text-2xl font-bold text-zinc-900">
                   {deployment.name}
                 </h1>
                 {getStatusBadge(deployment.status)}
               </div>
-              <p className="text-sm text-zinc-500 truncate max-w-md">
+              <p className="text-sm text-zinc-500 truncate">
                 {deployment.gitUrl}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {deployment.status === "running" && deployment.previewUrl && (
+          <div className="flex items-center gap-2 self-start">
+            {deployment.status === "running" && (
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => window.open(deployment.previewUrl, "_blank")}
+                onClick={() => window.open(previewUrl, "_blank")}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Visit

@@ -47,9 +47,9 @@ export function Header() {
             <span className="text-xl font-bold text-zinc-900">Echorcel</span>
           </Link>
 
-          <div className="flex items-center gap-4">
-            {/* Docker Status */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Docker Status - Full on sm+, compact on mobile */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200">
               {dockerConnected === null ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" />
               ) : (
@@ -58,6 +58,14 @@ export function Header() {
               <span className="text-xs font-medium text-zinc-600">
                 {dockerConnected === null ? "Checking..." : dockerConnected ? "Docker" : "Disconnected"}
               </span>
+            </div>
+            {/* Mobile: Icon only */}
+            <div className="sm:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200">
+              {dockerConnected === null ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" />
+              ) : (
+                <div className={`w-2.5 h-2.5 rounded-full ${dockerConnected ? "bg-emerald-500" : "bg-red-500"}`} />
+              )}
             </div>
 
             {/* Profile */}

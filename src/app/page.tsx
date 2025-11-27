@@ -94,7 +94,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-dvh bg-zinc-50 flex flex-col">
       {/* Header */}
       <header className="border-b border-zinc-200 sticky top-0 z-40 bg-white/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -105,8 +105,8 @@ export default function Home() {
               </div>
               <span className="text-xl font-bold text-zinc-900">Echorcel</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 shadow-soft">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 shadow-soft">
                 <div
                   className={`w-2 h-2 rounded-full ${
                     dockerConnected === null
@@ -120,6 +120,17 @@ export default function Home() {
                   Docker {dockerConnected === null ? "..." : dockerConnected ? "Connected" : "Disconnected"}
                 </span>
               </div>
+              <div className="sm:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-zinc-200 shadow-soft">
+                <div
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    dockerConnected === null
+                      ? "bg-zinc-400"
+                      : dockerConnected
+                      ? "bg-emerald-500"
+                      : "bg-red-500"
+                  }`}
+                />
+              </div>
               <ProfileDropdown username={username} />
             </div>
           </div>
@@ -127,20 +138,20 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">Deployments</h1>
             <p className="text-zinc-500 mt-1">Manage your Docker deployments</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="secondary" size="sm" onClick={fetchDeployments}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button variant="secondary" size="sm" onClick={fetchDeployments} className="flex-1 sm:flex-none">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Link href="/deployments/new">
-              <Button>
+            <Link href="/deployments/new" className="flex-1 sm:flex-none">
+              <Button className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
                 New Deployment
               </Button>
@@ -149,7 +160,7 @@ export default function Home() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <StatCard
             label="Total Deployments"
             value={stats.total}

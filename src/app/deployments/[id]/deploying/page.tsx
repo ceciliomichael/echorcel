@@ -78,7 +78,7 @@ export default function DeployingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-zinc-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
       </div>
     );
@@ -86,7 +86,7 @@ export default function DeployingPage() {
 
   if (!deployment) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-dvh bg-zinc-50 flex flex-col items-center justify-center gap-4">
         <p className="text-zinc-500">Deployment not found</p>
         <Button variant="secondary" onClick={() => router.push("/")}>
           Back to Home
@@ -106,12 +106,12 @@ export default function DeployingPage() {
   const isFailed = deployment.status === "failed";
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center overflow-auto">
+    <div className="min-h-dvh bg-white z-50 flex items-center justify-center py-8 sm:py-12">
       {/* Gradient background - same as success */}
       <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-white to-accent-50 opacity-70" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-violet-200/30 via-accent-200/20 to-transparent blur-3xl" />
 
-      <div className="relative w-full max-w-2xl mx-auto px-6 py-12">
+      <div className="relative w-full max-w-2xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent-100 mb-4">
@@ -141,7 +141,7 @@ export default function DeployingPage() {
             </div>
 
             {/* Terminal Content - Dark inside */}
-            <div className="h-[280px] overflow-y-auto p-4 font-mono text-sm bg-zinc-900 rounded-b-lg dark-scrollbar">
+            <div className="h-[200px] sm:h-[280px] max-h-[50dvh] overflow-y-auto p-4 font-mono text-sm bg-zinc-900 rounded-b-lg dark-scrollbar">
               {logs.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-zinc-400 gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />

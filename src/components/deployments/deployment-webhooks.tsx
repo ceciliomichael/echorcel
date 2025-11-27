@@ -155,12 +155,12 @@ export function WebhookSettings({ deploymentId }: WebhookSettingsProps) {
   return (
     <Card>
       <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-accent-50 border border-accent-100 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-accent-50 border border-accent-100 flex items-center justify-center flex-shrink-0">
               <Webhook className="w-4 h-4 text-accent-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="font-medium text-zinc-900 text-sm">GitHub Webhook</h3>
               <p className="text-xs text-zinc-500">
                 Auto-deploy on push

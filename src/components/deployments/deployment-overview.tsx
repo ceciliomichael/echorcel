@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { EnvEditor } from "@/components/ui/env-editor";
 import type { Deployment } from "@/types/deployment";
@@ -23,8 +23,26 @@ interface DeploymentOverviewProps {
 
 export function DeploymentOverview({ deployment }: DeploymentOverviewProps) {
   const [previewLoaded, setPreviewLoaded] = useState(false);
-  const previewUrl = `http://localhost:${deployment.port}`;
+  const [previewUrl, setPreviewUrl] = useState(
+    deployment.previewUrl || `http://localhost:${deployment.port}`
+  );
   const isRunning = deployment.status === "running";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === "localhost" || hostname.startsWith("127.");
+    const localUrl = deployment.previewUrl || `http://localhost:${deployment.port}`;
+
+    if (!isLocalhost && deployment.publicUrl) {
+      setPreviewUrl(deployment.publicUrl);
+    } else {
+      setPreviewUrl(localUrl);
+    }
+  }, [deployment.previewUrl, deployment.publicUrl, deployment.port]);
 
   const infoItems = [
     {
@@ -132,7 +150,7 @@ export function DeploymentOverview({ deployment }: DeploymentOverviewProps) {
               </div>
               <div>
                 <p className="text-xs text-zinc-500 mb-0.5">Container ID</p>
-                <p className="text-sm font-mono text-zinc-900 truncate max-w-[180px]">
+                <p className="text-sm font-mono text-zinc-900 truncate">
                   {deployment.containerId?.slice(0, 12) || "Not running"}
                 </p>
               </div>
@@ -155,13 +173,13 @@ export function DeploymentOverview({ deployment }: DeploymentOverviewProps) {
               <div>
                 <p className="text-xs text-zinc-500 mb-0.5">Preview URL</p>
                 <a
-                  href={`http://localhost:${deployment.port}`}
+                  href={previewUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm font-medium text-accent-600 hover:text-accent-700 transition-colors"
+                  className="flex items-center gap-1.5 text-sm font-medium text-accent-600 hover:text-accent-700 transition-colors break-all"
                 >
-                  localhost:{deployment.port}
-                  <ExternalLink className="w-3 h-3" />
+                  <span className="truncate">{previewUrl}</span>
+                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
                 </a>
               </div>
             </div>

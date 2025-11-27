@@ -67,14 +67,14 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-zinc-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4 py-12 sm:py-16 lg:py-20">
+    <div className="min-h-dvh bg-zinc-50 flex items-center justify-center px-4 py-12 sm:py-16 lg:py-20">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl border border-zinc-200 shadow-lifted p-8">
           <div className="flex flex-col items-center mb-8">

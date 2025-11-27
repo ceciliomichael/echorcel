@@ -202,7 +202,7 @@ export default function NewDeploymentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-dvh bg-zinc-50">
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -222,8 +222,36 @@ export default function NewDeploymentPage() {
           Import your project and deploy it to Docker
         </p>
 
-        {/* Progress Steps */}
-        <div className="mb-8">
+        {/* Progress Steps - Mobile */}
+        <div className="sm:hidden mb-8">
+          <div className="bg-white rounded-xl border border-zinc-200 p-4 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-zinc-500">
+                Step {currentStep} of {steps.length}
+              </span>
+              <span className="text-sm font-semibold text-accent-600">
+                {steps[currentStep - 1].name}
+              </span>
+            </div>
+            <div className="flex gap-1.5">
+              {steps.map((step) => (
+                <div
+                  key={step.id}
+                  className={`h-2 flex-1 rounded-full transition-colors ${
+                    currentStep > step.id
+                      ? "bg-accent-600"
+                      : currentStep === step.id
+                      ? "bg-accent-400"
+                      : "bg-zinc-200"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Steps - Desktop */}
+        <div className="hidden sm:block mb-8">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
@@ -249,7 +277,7 @@ export default function NewDeploymentPage() {
                       )}
                     </div>
                     <span
-                      className={`mt-2 text-xs font-medium ${
+                      className={`mt-2 text-xs font-medium whitespace-nowrap ${
                         isCurrent ? "text-accent-700" : "text-zinc-500"
                       }`}
                     >
@@ -524,23 +552,24 @@ export default function NewDeploymentPage() {
         </Card>
 
         {/* Navigation Buttons */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <Button
             variant="ghost"
             onClick={prevStep}
             disabled={currentStep === 1}
+            className="w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
           {currentStep < 4 ? (
-            <Button onClick={nextStep} disabled={!canProceed()}>
+            <Button onClick={nextStep} disabled={!canProceed()} className="w-full sm:w-auto">
               Continue
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

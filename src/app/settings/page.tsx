@@ -43,12 +43,12 @@ function SettingsContent() {
   }, [notification]);
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-dvh bg-zinc-50">
       <Header />
 
       {/* Toast */}
       {notification && (
-        <div className="fixed top-20 right-4 z-50 animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-4 z-50 animate-in fade-in slide-in-from-top-2">
           <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
             notification.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
@@ -107,23 +107,23 @@ function SettingsContent() {
               <section>
                 <h2 className="text-lg font-semibold text-zinc-900 mb-4">Application Info</h2>
                 <div className="bg-zinc-50 rounded-xl border border-zinc-100 divide-y divide-zinc-200">
-                  <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 px-5 py-4">
                     <span className="text-sm text-zinc-600">Application</span>
                     <span className="text-sm font-semibold text-zinc-900">Echorcel</span>
                   </div>
-                  <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 px-5 py-4">
                     <span className="text-sm text-zinc-600">Version</span>
                     <span className="text-sm font-mono text-zinc-900">1.0.0</span>
                   </div>
-                  <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 px-5 py-4">
                     <span className="text-sm text-zinc-600">Environment</span>
                     <Badge variant="default">
                       {process.env.NODE_ENV === "production" ? "Production" : "Development"}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 px-5 py-4">
                     <span className="text-sm text-zinc-600">App URL</span>
-                    <span className="text-sm font-mono text-zinc-900">
+                    <span className="text-sm font-mono text-zinc-900 break-all">
                       {typeof window !== "undefined" ? window.location.origin : ""}
                     </span>
                   </div>

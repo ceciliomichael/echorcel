@@ -142,7 +142,7 @@ export function LogViewer({
         <ScrollArea>
           <div
             ref={scrollRef}
-            className="bg-zinc-900 rounded-lg border border-zinc-800 p-4 h-[400px] overflow-y-auto font-mono text-sm"
+            className="bg-zinc-900 rounded-lg border border-zinc-800 p-4 min-h-[200px] h-[300px] sm:h-[400px] max-h-[50dvh] overflow-y-auto font-mono text-sm"
           >
             {isLoading && logs.length === 0 ? (
               <div className="flex items-center justify-center h-full text-zinc-400">

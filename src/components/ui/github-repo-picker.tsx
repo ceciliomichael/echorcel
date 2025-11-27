@@ -64,6 +64,7 @@ export function GitHubRepoPicker({
   const [searchQuery, setSearchQuery] = useState("");
   const [showRepoDropdown, setShowRepoDropdown] = useState(false);
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
 
   // Check GitHub connection
   useEffect(() => {
@@ -166,7 +167,72 @@ export function GitHubRepoPicker({
       {/* Source Type Toggle */}
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-2">Import from</label>
-        <div className="flex rounded-lg border border-zinc-200 p-1 bg-zinc-50">
+        
+        {/* Mobile: Dropdown */}
+        <div className="sm:hidden relative">
+          <button
+            type="button"
+            onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+            className="w-full flex items-center justify-between px-4 py-3 min-h-[48px] bg-white border border-zinc-200 rounded-xl text-left shadow-soft"
+          >
+            <div className="flex items-center gap-3">
+              {sourceType === "github" ? (
+                <>
+                  <Github className="w-5 h-5 text-zinc-700" />
+                  <span className="font-medium text-zinc-900">GitHub</span>
+                  {isConnected && <span className="text-xs text-zinc-400">@{username}</span>}
+                </>
+              ) : (
+                <>
+                  <LinkIcon className="w-5 h-5 text-zinc-700" />
+                  <span className="font-medium text-zinc-900">Custom URL</span>
+                </>
+              )}
+            </div>
+            <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${showSourceDropdown ? "rotate-180" : ""}`} />
+          </button>
+
+          {showSourceDropdown && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowSourceDropdown(false)} />
+              <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isConnected) setSourceType("github");
+                    setShowSourceDropdown(false);
+                  }}
+                  disabled={!isConnected}
+                  className={`w-full flex items-center gap-3 px-4 py-3 min-h-[48px] text-left transition-colors ${
+                    sourceType === "github" ? "bg-accent-50 text-accent-700" : "text-zinc-700 hover:bg-zinc-50"
+                  } ${!isConnected ? "opacity-50" : ""}`}
+                >
+                  <Github className="w-5 h-5" />
+                  <span className="flex-1 font-medium">GitHub</span>
+                  {isConnected && <span className="text-xs text-zinc-400">@{username}</span>}
+                  {sourceType === "github" && <Check className="w-5 h-5 text-accent-600" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSourceType("url");
+                    setShowSourceDropdown(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 min-h-[48px] text-left transition-colors ${
+                    sourceType === "url" ? "bg-accent-50 text-accent-700" : "text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  <LinkIcon className="w-5 h-5" />
+                  <span className="flex-1 font-medium">Custom URL</span>
+                  {sourceType === "url" && <Check className="w-5 h-5 text-accent-600" />}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Desktop: Toggle buttons */}
+        <div className="hidden sm:flex rounded-lg border border-zinc-200 p-1 bg-zinc-50">
           <button
             type="button"
             onClick={() => setSourceType("github")}

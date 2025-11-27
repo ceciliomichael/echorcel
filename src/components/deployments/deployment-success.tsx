@@ -20,7 +20,23 @@ interface DeploymentSuccessProps {
 
 export function DeploymentSuccess({ deployment, onContinue }: DeploymentSuccessProps) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
-  const previewUrl = `http://localhost:${deployment.port}`;
+  const localPreviewUrl = `http://localhost:${deployment.port}`;
+  const [previewUrl, setPreviewUrl] = useState(localPreviewUrl);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === "localhost" || hostname.startsWith("127.");
+
+    if (!isLocalhost && deployment.publicUrl) {
+      setPreviewUrl(deployment.publicUrl);
+    } else {
+      setPreviewUrl(localPreviewUrl);
+    }
+  }, [deployment.publicUrl, localPreviewUrl]);
 
   useEffect(() => {
     // Trigger confetti on mount
@@ -74,12 +90,12 @@ export function DeploymentSuccess({ deployment, onContinue }: DeploymentSuccessP
   ];
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center overflow-hidden">
+    <div className="min-h-dvh bg-white z-50 flex items-center justify-center py-8 sm:py-12 overflow-auto">
       {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-white to-accent-50 opacity-70" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-violet-200/30 via-accent-200/20 to-transparent blur-3xl" />
       
-      <div className="relative w-full max-w-2xl mx-auto px-6 py-12">
+      <div className="relative w-full max-w-2xl mx-auto px-4 sm:px-6">
         {/* Success Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
@@ -121,13 +137,13 @@ export function DeploymentSuccess({ deployment, onContinue }: DeploymentSuccessP
             </div>
             
             {/* iframe Preview - Scaled Desktop View (Non-interactive thumbnail) */}
-            <div className="relative h-[300px] bg-zinc-100 overflow-hidden">
+            <div className="relative h-[200px] sm:h-[300px] bg-zinc-100 overflow-hidden">
               {!iframeLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="animate-pulse text-zinc-400">Loading preview...</div>
                 </div>
               )}
-              <div className="absolute inset-0 origin-top-left pointer-events-none" style={{ width: "1440px", height: "900px", transform: "scale(0.42)" }}>
+              <div className="absolute inset-0 origin-top-left pointer-events-none hidden sm:block" style={{ width: "1440px", height: "900px", transform: "scale(0.42)" }}>
                 <iframe
                   src={previewUrl}
                   className={`w-full h-full border-0 transition-opacity duration-300 ${iframeLoaded ? "opacity-100" : "opacity-0"}`}
@@ -135,6 +151,13 @@ export function DeploymentSuccess({ deployment, onContinue }: DeploymentSuccessP
                   title="Deployment Preview"
                   tabIndex={-1}
                 />
+              </div>
+              {/* Mobile: Simple preview placeholder */}
+              <div className="sm:hidden flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Globe className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
+                  <p className="text-sm text-zinc-500">Tap to view your site</p>
+                </div>
               </div>
               {/* Overlay to prevent interaction */}
               <div className="absolute inset-0 z-20" />

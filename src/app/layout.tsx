@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-zinc-50 text-zinc-900 antialiased">
+      <body className="min-h-dvh flex flex-col bg-zinc-50 text-zinc-900 antialiased">
         {children}
       </body>
     </html>

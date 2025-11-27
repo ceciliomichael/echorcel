@@ -152,7 +152,7 @@ export function DeploymentLogs({ deploymentId, status: initialStatus }: Deployme
 
         <div
           ref={scrollRef}
-          className="bg-zinc-900 rounded-lg p-4 h-[500px] overflow-y-auto font-mono text-sm dark-scrollbar"
+          className="bg-zinc-900 rounded-lg p-4 min-h-[240px] h-[400px] sm:h-[500px] max-h-[60dvh] overflow-y-auto font-mono text-sm dark-scrollbar"
         >
           {isLoading && logs.length === 0 ? (
             <div className="flex items-center justify-center h-full text-zinc-400">
