@@ -27,6 +27,46 @@ function generateHostname(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+async function generateUniqueHostname(baseName: string, deploymentId: string): Promise<string> {
+  const baseSlug = generateHostname(baseName) || "app";
+  const collection = await getDeploymentsCollection();
+
+  const existing = await collection
+    .find({ hostname: { $regex: `^${baseSlug}(?:-[0-9]+)?\\.${ROUTER_DOMAIN}$` } })
+    .project<{ hostname?: string }>({ hostname: 1 })
+    .toArray();
+
+  if (existing.length === 0) {
+    return `${baseSlug}.${ROUTER_DOMAIN}`;
+  }
+
+  const usedSuffixes = new Set<number>();
+
+  for (const doc of existing) {
+    if (!doc.hostname) continue;
+    const withoutDomain = doc.hostname.replace(`.${ROUTER_DOMAIN}`, "");
+    if (withoutDomain === baseSlug) {
+      usedSuffixes.add(0);
+      continue;
+    }
+
+    const match = withoutDomain.match(new RegExp(`^${baseSlug}-([0-9]+)$`));
+    if (match) {
+      const num = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(num)) {
+        usedSuffixes.add(num);
+      }
+    }
+  }
+
+  let suffix = 1;
+  while (usedSuffixes.has(suffix)) {
+    suffix += 1;
+  }
+
+  return `${baseSlug}-${suffix}.${ROUTER_DOMAIN}`;
+}
+
 async function updateDeploymentStatus(
   id: string,
   status: DeploymentStatus,
@@ -227,8 +267,7 @@ async function runDeployment(
     let publicUrl: string | undefined;
 
     if (IS_TUNNEL_MODE) {
-      const hostnameSlug = generateHostname(updatedDeployment.name);
-      hostname = `${hostnameSlug}.${ROUTER_DOMAIN}`;
+      hostname = await generateUniqueHostname(updatedDeployment.name, id);
       publicUrl = `https://${hostname}`;
     }
 

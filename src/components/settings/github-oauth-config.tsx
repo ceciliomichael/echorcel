@@ -94,19 +94,19 @@ export function GitHubOAuthConfig() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center flex-shrink-0">
-            <Github className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="font-medium text-zinc-900">GitHub OAuth App</h3>
-            <p className="text-sm text-zinc-500">Required for GitHub integration</p>
-          </div>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center flex-shrink-0">
+          <Github className="w-5 h-5 text-white" />
         </div>
-        <Badge variant={config?.configured ? "success" : "warning"}>
-          {config?.configured ? "Configured" : "Not configured"}
-        </Badge>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-medium text-zinc-900">GitHub OAuth App</h3>
+            <Badge variant={config?.configured ? "success" : "warning"}>
+              {config?.configured ? "Configured" : "Not configured"}
+            </Badge>
+          </div>
+          <p className="text-sm text-zinc-500">Required for GitHub integration</p>
+        </div>
       </div>
 
       {config?.configured && !isEditing ? (

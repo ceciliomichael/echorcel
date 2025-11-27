@@ -48,6 +48,8 @@ export default function NewDeploymentPage() {
   const [lastAnalyzedUrl, setLastAnalyzedUrl] = useState("");
   const [portTouched, setPortTouched] = useState(false);
   const [isFetchingPort, setIsFetchingPort] = useState(false);
+  const [hasSuggestedName, setHasSuggestedName] = useState(false);
+  const [existingNames, setExistingNames] = useState<string[]>([]);
   const lastStepRef = useRef(1);
 
   const [formData, setFormData] = useState<DeploymentFormData>({
@@ -89,6 +91,53 @@ export default function NewDeploymentPage() {
 
     fetchAvailablePort();
   }, [currentStep, portTouched]);
+
+  useEffect(() => {
+    const suggestUniqueName = async () => {
+      if (currentStep !== 2 || hasSuggestedName) {
+        return;
+      }
+
+      const baseName = formData.name.trim();
+      if (!baseName) {
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/deployments");
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        const namesFromApi: string[] = Array.isArray(data.deployments)
+          ? data.deployments
+              .map((d: { name?: string }) => (typeof d.name === "string" ? d.name : ""))
+              .filter((name: string) => name.length > 0)
+          : [];
+
+        setExistingNames(namesFromApi);
+
+        let candidate = baseName;
+        let counter = 1;
+
+        while (namesFromApi.includes(candidate)) {
+          candidate = `${baseName}-${counter}`;
+          counter += 1;
+        }
+
+        if (candidate !== formData.name) {
+          setFormData((prev) => ({ ...prev, name: candidate }));
+        }
+      } catch (_error) {
+        return;
+      } finally {
+        setHasSuggestedName(true);
+      }
+    };
+
+    suggestUniqueName();
+  }, [currentStep, formData.name, hasSuggestedName]);
 
   const handleFrameworkChange = (framework: FrameworkPreset) => {
     const preset = FRAMEWORK_PRESETS[framework];
@@ -183,7 +232,10 @@ export default function NewDeploymentPage() {
       case 1:
         return formData.gitUrl.trim().length > 0;
       case 2:
-        return formData.name.trim().length > 0;
+        return (
+          formData.name.trim().length > 0 &&
+          (existingNames.length === 0 || !existingNames.includes(formData.name.trim()))
+        );
       default:
         return true;
     }
@@ -298,8 +350,8 @@ export default function NewDeploymentPage() {
         </div>
 
         {/* Form Card */}
-        <Card className="mb-6">
-          <CardContent className="p-6 sm:p-8">
+        <Card className="mb-6" padding="none">
+          <CardContent className="p-5 sm:p-6">
             {/* Step 1: Repository */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -367,7 +419,7 @@ export default function NewDeploymentPage() {
 
             {/* Step 2: Configure */}
             {currentStep === 2 && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-semibold text-zinc-900 mb-1">
                     Configure Deployment
@@ -378,6 +430,7 @@ export default function NewDeploymentPage() {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Row 1: Name + Framework */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="Project Name"
@@ -385,7 +438,13 @@ export default function NewDeploymentPage() {
                       placeholder="my-awesome-app"
                       value={formData.name}
                       onChange={(e) => updateField("name", e.target.value)}
-                      hint="This will be used as your deployment name"
+                      error={
+                        formData.name.trim().length > 0 &&
+                        existingNames.length > 0 &&
+                        existingNames.includes(formData.name.trim())
+                          ? "Name already exists"
+                          : undefined
+                      }
                     />
                     <FrameworkSelect
                       value={formData.framework}
@@ -394,7 +453,8 @@ export default function NewDeploymentPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Row 2: Install + Build + Start (3 cols on lg) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Input
                       label="Install Command"
                       id="installCommand"
@@ -409,9 +469,6 @@ export default function NewDeploymentPage() {
                       value={formData.buildCommand}
                       onChange={(e) => updateField("buildCommand", e.target.value)}
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="Start Command"
                       id="startCommand"
@@ -419,6 +476,10 @@ export default function NewDeploymentPage() {
                       value={formData.startCommand}
                       onChange={(e) => updateField("startCommand", e.target.value)}
                     />
+                  </div>
+
+                  {/* Row 3: Port + Output Dir + Restart (3 cols on lg) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Input
                       label={isFetchingPort ? "Port (checking...)" : "Port"}
                       id="port"
@@ -430,25 +491,19 @@ export default function NewDeploymentPage() {
                         setPortTouched(true);
                         updateField("port", parseInt(e.target.value) || 3100);
                       }}
-                      hint="Auto-assigned from range 3100-3200"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="Output Directory"
                       id="outputDirectory"
                       placeholder=".next"
                       value={formData.outputDirectory}
                       onChange={(e) => updateField("outputDirectory", e.target.value)}
-                      hint="Leave empty if not applicable"
                     />
                     <Select
                       label="Restart Policy"
                       options={RESTART_POLICIES.map((p) => ({ value: p.value, label: p.label }))}
                       value={formData.restartPolicy}
                       onChange={(e) => updateField("restartPolicy", e.target.value as RestartPolicy)}
-                      hint="When container should restart"
                     />
                   </div>
                 </div>

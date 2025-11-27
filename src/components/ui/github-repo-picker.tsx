@@ -65,8 +65,10 @@ export function GitHubRepoPicker({
   const [showRepoDropdown, setShowRepoDropdown] = useState(false);
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [customUrl, setCustomUrl] = useState("");
+  const [initializedFromGitUrl, setInitializedFromGitUrl] = useState(false);
 
-  // Check GitHub connection
+  // Check GitHub connection and restore state from gitUrl
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -77,6 +79,11 @@ export function GitHubRepoPicker({
           setUsername(data.username);
         } else {
           setSourceType("url");
+          // If not connected and we have a gitUrl, it must be custom
+          if (gitUrl && !initializedFromGitUrl) {
+            setCustomUrl(gitUrl);
+            setInitializedFromGitUrl(true);
+          }
         }
       } catch {
         setIsConnected(false);
@@ -84,7 +91,7 @@ export function GitHubRepoPicker({
       }
     };
     checkConnection();
-  }, []);
+  }, [gitUrl, initializedFromGitUrl]);
 
   // Fetch repos when connected
   const fetchRepos = useCallback(async (query?: string) => {
@@ -100,19 +107,6 @@ export function GitHubRepoPicker({
       setIsLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    if (isConnected && sourceType === "github") {
-      fetchRepos();
-    }
-  }, [isConnected, sourceType, fetchRepos]);
-
-  // Debounced search
-  useEffect(() => {
-    if (!isConnected || sourceType !== "github") return;
-    const timer = setTimeout(() => fetchRepos(searchQuery), 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, isConnected, sourceType, fetchRepos]);
 
   // Fetch branches for selected repo
   const fetchBranches = useCallback(async (fullName: string) => {
@@ -130,6 +124,45 @@ export function GitHubRepoPicker({
     }
   }, []);
 
+  useEffect(() => {
+    if (isConnected && sourceType === "github") {
+      fetchRepos();
+    }
+  }, [isConnected, sourceType, fetchRepos]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!isConnected || sourceType !== "github") return;
+    const timer = setTimeout(() => fetchRepos(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, isConnected, sourceType, fetchRepos]);
+
+  // Restore selected repo from gitUrl when repos are loaded
+  useEffect(() => {
+    if (repos.length > 0 && gitUrl && isConnected && !selectedRepo) {
+      // Check if gitUrl matches any repo's clone URL
+      const matchingRepo = repos.find(r => r.cloneUrl === gitUrl);
+      if (matchingRepo) {
+        setSelectedRepo(matchingRepo);
+        setSourceType("github");
+        fetchBranches(matchingRepo.fullName);
+        setInitializedFromGitUrl(true);
+      }
+    }
+  }, [repos, gitUrl, isConnected, selectedRepo, fetchBranches]);
+
+  // If gitUrl looks like a custom URL and no repo is selected, switch to URL mode
+  useEffect(() => {
+    if (!initializedFromGitUrl && gitUrl && isConnected === true && repos.length > 0) {
+      const matchingRepo = repos.find(r => r.cloneUrl === gitUrl);
+      if (!matchingRepo && (gitUrl.startsWith("https://") || gitUrl.startsWith("git@"))) {
+        setSourceType("url");
+        setCustomUrl(gitUrl);
+        setInitializedFromGitUrl(true);
+      }
+    }
+  }, [gitUrl, repos, isConnected, initializedFromGitUrl]);
+
   const handleSelectRepo = (repo: GitHubRepo) => {
     setSelectedRepo(repo);
     onChangeUrl(repo.cloneUrl);
@@ -137,6 +170,23 @@ export function GitHubRepoPicker({
     onChangeName(repo.name);
     fetchBranches(repo.fullName);
     setShowRepoDropdown(false);
+  };
+
+  // When switching to URL mode, use the custom URL (not the GitHub-selected one)
+  const handleSwitchToUrl = () => {
+    setSourceType("url");
+    // Restore custom URL when switching back
+    onChangeUrl(customUrl);
+  };
+
+  // When switching to GitHub mode, restore the selected repo URL if any
+  const handleSwitchToGitHub = () => {
+    if (isConnected) {
+      setSourceType("github");
+      if (selectedRepo) {
+        onChangeUrl(selectedRepo.cloneUrl);
+      }
+    }
   };
 
   const handleSelectBranch = (branchName: string) => {
@@ -199,7 +249,7 @@ export function GitHubRepoPicker({
                 <button
                   type="button"
                   onClick={() => {
-                    if (isConnected) setSourceType("github");
+                    handleSwitchToGitHub();
                     setShowSourceDropdown(false);
                   }}
                   disabled={!isConnected}
@@ -215,7 +265,7 @@ export function GitHubRepoPicker({
                 <button
                   type="button"
                   onClick={() => {
-                    setSourceType("url");
+                    handleSwitchToUrl();
                     setShowSourceDropdown(false);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 min-h-[48px] text-left transition-colors ${
@@ -235,7 +285,7 @@ export function GitHubRepoPicker({
         <div className="hidden sm:flex rounded-lg border border-zinc-200 p-1 bg-zinc-50">
           <button
             type="button"
-            onClick={() => setSourceType("github")}
+            onClick={handleSwitchToGitHub}
             disabled={!isConnected}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               sourceType === "github"
@@ -249,7 +299,7 @@ export function GitHubRepoPicker({
           </button>
           <button
             type="button"
-            onClick={() => setSourceType("url")}
+            onClick={handleSwitchToUrl}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               sourceType === "url"
                 ? "bg-white text-zinc-900 shadow-sm"
@@ -401,8 +451,11 @@ export function GitHubRepoPicker({
           <Input
             label="Git Repository URL"
             placeholder="https://github.com/user/repo"
-            value={gitUrl}
-            onChange={(e) => onChangeUrl(e.target.value)}
+            value={customUrl}
+            onChange={(e) => {
+              setCustomUrl(e.target.value);
+              onChangeUrl(e.target.value);
+            }}
             hint="HTTPS or SSH URL to any Git repository"
           />
 
