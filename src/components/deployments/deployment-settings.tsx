@@ -10,8 +10,8 @@ import { FrameworkSelect } from "@/components/ui/framework-select";
 import { DeleteConfirmModal } from "@/components/ui/delete-confirm-modal";
 import { EnvEditor } from "@/components/ui/env-editor";
 import type { Deployment, FrameworkPreset, DeploymentStatus, RestartPolicy } from "@/types/deployment";
-import { FRAMEWORK_PRESETS, RESTART_POLICIES } from "@/types/deployment";
-import { Select } from "@/components/ui/select";
+import { FRAMEWORK_PRESETS } from "@/types/deployment";
+import { RestartPolicySelect } from "@/components/ui/restart-policy-select";
 import {
   Loader2,
   Trash2,
@@ -313,12 +313,10 @@ export function DeploymentSettings({ deployment, onUpdate }: DeploymentSettingsP
       <Card>
         <CardHeader title="Container" description="Docker container settings" />
         <CardContent>
-          <Select
+          <RestartPolicySelect
             label="Restart Policy"
-            options={RESTART_POLICIES.map((p) => ({ value: p.value, label: `${p.label} - ${p.description}` }))}
             value={formData.restartPolicy}
-            onChange={(e) => updateField("restartPolicy", e.target.value as RestartPolicy)}
-            hint="Controls when the container should automatically restart"
+            onChange={(value) => updateField("restartPolicy", value)}
           />
         </CardContent>
       </Card>

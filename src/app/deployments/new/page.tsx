@@ -11,12 +11,11 @@ import { EnvEditor } from "@/components/ui/env-editor";
 import { GitHubRepoPicker } from "@/components/ui/github-repo-picker";
 import {
   FRAMEWORK_PRESETS,
-  RESTART_POLICIES,
   type FrameworkPreset,
   type DeploymentFormData,
   type RestartPolicy,
 } from "@/types/deployment";
-import { Select } from "@/components/ui/select";
+import { RestartPolicySelect } from "@/components/ui/restart-policy-select";
 import type { DetectionResult } from "@/lib/repo-detector";
 import {
   ArrowLeft,
@@ -499,11 +498,10 @@ export default function NewDeploymentPage() {
                       value={formData.outputDirectory}
                       onChange={(e) => updateField("outputDirectory", e.target.value)}
                     />
-                    <Select
+                    <RestartPolicySelect
                       label="Restart Policy"
-                      options={RESTART_POLICIES.map((p) => ({ value: p.value, label: p.label }))}
                       value={formData.restartPolicy}
-                      onChange={(e) => updateField("restartPolicy", e.target.value as RestartPolicy)}
+                      onChange={(value) => updateField("restartPolicy", value)}
                     />
                   </div>
                 </div>
