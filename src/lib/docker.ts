@@ -376,6 +376,7 @@ export async function createAndStartContainer(
         [`${containerPort}/tcp`]: [{ HostPort: String(deployment.port) }],
       },
       RestartPolicy: restartPolicyConfig,
+      ExtraHosts: ["host.docker.internal:host-gateway"],
     },
   });
 
