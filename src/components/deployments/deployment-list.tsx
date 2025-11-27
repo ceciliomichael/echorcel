@@ -207,19 +207,19 @@ export function DeploymentList({
         <table className="w-full">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/50">
-              <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider w-[280px]">
                 App Name
               </th>
-              <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider w-[100px]">
                 Status
               </th>
               <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:table-cell">
                 Preview
               </th>
-              <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden lg:table-cell">
+              <th className="text-left px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden lg:table-cell w-[120px]">
                 Created
               </th>
-              <th className="text-right px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+              <th className="text-right px-6 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider w-[180px]">
                 Actions
               </th>
             </tr>
@@ -251,10 +251,10 @@ export function DeploymentList({
                       href={getPreviewUrl(deployment)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-accent-600 hover:text-accent-700 flex items-center gap-1 text-sm"
+                      className="text-accent-600 hover:text-accent-700 flex items-center gap-1.5 text-sm"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                      <span className="truncate max-w-[150px]">
+                      <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">
                         {getPreviewUrl(deployment)}
                       </span>
                     </a>
