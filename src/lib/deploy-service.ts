@@ -267,7 +267,8 @@ async function runDeployment(
     let publicUrl: string | undefined;
 
     if (IS_TUNNEL_MODE) {
-      hostname = await generateUniqueHostname(updatedDeployment.name, id);
+      // Reuse existing hostname if available (for redeployments), otherwise generate new one
+      hostname = updatedDeployment.hostname || (await generateUniqueHostname(updatedDeployment.name, id));
       publicUrl = `https://${hostname}`;
     }
 
